@@ -28,18 +28,17 @@ else
 	JULIA_IN_ONE_FILE=julia_in_one_file
 endif
 
-default: ${JULIA_IN_ONE_FILE}
+define backup
+	zip -9r $(1).backup-$$(date +%F-%T | sed 's/:/-/g').zip $(2)
+endef
 
-HAVE_BACKUP=$(shell which backup 2>/dev/null)
+default: ${JULIA_IN_ONE_FILE}
 
 download:
 	git clone git://github.com/JuliaLang/julia.git
 	cd julia && make source-dist
 	mv julia/julia-0.4.0-dev_*.tar.gz .
-	# Backup if there is backup script.
-ifneq (${HAVE_BACKUP},)
-	backup -z julia
-endif
+	$(call backup,julia,julia)
 
 GIT_ZIP=$(shell ls -w1 julia.backup-*.zip | tail -n 1)
 unpack_git: julia/.unpacked_git
@@ -81,10 +80,8 @@ download_site: julia/.built
 	JULIA_PKGDIR=julia_root/share/julia/site julia update_repo.jl
 	-find julia_root/share/julia/site/ -name .cache -exec rm -rf {} \;
 	-find julia_root/share/julia/site/ -name .git -exec rm -rf {} \;
-ifneq (${HAVE_BACKUP},)
-	backup -z julia_root/share/julia/site/
+	$(call backup,site,julia_root/share/julia/site/)
 	mv julia_root/share/julia/site.backup*.zip .
-endif
 
 SITE_ZIP=$(shell ls -w1 site.backup-*.zip | tail -n 1)
 julia_root.tar.bz2: julia/.built

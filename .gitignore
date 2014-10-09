@@ -6,4 +6,4 @@ julia-*.tar.gz
 julia.backup-*.zip
 site.backup-*.zip
 julia_root
-julia_root.tar.bz2
+julia_root*.tar.bz2
