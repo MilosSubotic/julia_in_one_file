@@ -20,6 +20,7 @@
 #include <sstream>
 #include <stdint.h>
 #include <cstdlib>
+#include <cstring>
 #include <cmath>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -29,55 +30,75 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////
 // User configuration.
 
+#if defined(WIN32)
+#define OUTPUT_DIR "C:"
+#else
 #define OUTPUT_DIR "/tmp"
+#endif
 #define BLOCK_SIZE 4096
 
 ///////////////////////////////////////////////////////////////////////////////
 
 // Initialized with magic number, so it could be changed by script.
-volatile uint32_t tarball_offset = 0xdeadbeef;
+volatile uint64_t tarball_offset = 0xdeadbeefdeadbeef;
 
 int main(int argc, char** argv) {
 
 	string s = OUTPUT_DIR;
+#if defined(WIN32)
+	s += "\\julia_root\\.status";
+#else
 	s += "/julia_root/.status";
+#endif
 	const char* status_file = s.c_str();
-
+	
+	
 	// If there is no status file unpack julia.
 	if(access(status_file, R_OK)){
+		const char* elf_path;
 
-		// Get julia_in_one_file (ELF + tarball) full path.
-		string which_cmd;
 #if defined(WIN32)
-		which_cmd += "where ";
+		if(isalpha(argv[0][0]) && argv[0][1] == ':' && argv[0][2] == '\\') {
 #else
-		which_cmd += "which ";
+		if(argv[0][0] = '/') {
 #endif
-		which_cmd += argv[0];
+			elf_path = argv[0];
+		}else{
+		
+			// Get julia_in_one_file (ELF + tarball) full path.
+			string which_cmd;
+#if defined(WIN32)
+			which_cmd += "where ";
+#else
+			which_cmd += "which ";
+#endif
+			which_cmd += argv[0];
 
-		FILE* pipe = popen(which_cmd.c_str(), "r");
-		if(!pipe){
-			cout << "julia_in_one_file: Cannot get executable path!" << endl;
-			return 1;
+			FILE* pipe = popen(which_cmd.c_str(), "r");
+			if(!pipe){
+				cout << "julia_in_one_file: Cannot get executable path!" 
+					<< endl;
+				return 1;
+			}
+			char buffer[128];
+			std::string result = "";
+			while(!feof(pipe)) {
+				if(fgets(buffer, 128, pipe) != NULL)
+					result += buffer;
+			}
+			pclose(pipe);
+			// Remove \n at the end.
+			if(result == ""){
+				cout << "julia_in_one_file: Cannot get executable path!" 
+					<< endl;
+				return 1;
+			}
+
+			// Remove \n at the end.
+			result.erase(result.find('\n'));
+
+			elf_path = result.c_str();
 		}
-		char buffer[128];
-		std::string result = "";
-		while(!feof(pipe)) {
-			if(fgets(buffer, 128, pipe) != NULL)
-				result += buffer;
-		}
-		pclose(pipe);
-		// Remove \n at the end.
-		if(result == ""){
-			cout << "julia_in_one_file: Cannot get executable path!" << endl;
-			return 1;
-		}
-
-		// Remove \n at the end.
-		result.erase(result.find('\n'));
-
-		const char* elf_path = result.c_str();
-
 
 		// Get sizes calculated.
 		struct stat st;
@@ -90,12 +111,18 @@ int main(int argc, char** argv) {
 		uint32_t tarball_size_in_blocks = ceil(double(tarball_size) / BLOCK_SIZE);
 
 		ostringstream oss;
-		oss << "rm -rf " << OUTPUT_DIR << "/julia_root && "
+		oss << "rm -rf \"" << OUTPUT_DIR 
+#if defined(WIN32)
+			<< "\\julia_root"
+#else
+			<< "/julia_root"
+#endif
+			<< "\" && "
 			<< "dd bs=" << BLOCK_SIZE
 			<< " count=" << tarball_size_in_blocks
 			<< " skip=" << tarball_offset_in_blocks
 			<< " if=" << elf_path << " | "
-			<< "tar xfvj - -C " << OUTPUT_DIR;
+			<< "tar xfvj - -C \"" << OUTPUT_DIR << "\"";
 	
 		cout << "julia_in_one_file: Unpacking Julia to \"" 
 			<< OUTPUT_DIR << "\"..." << endl;
@@ -110,22 +137,26 @@ int main(int argc, char** argv) {
 		// Make status file after succesfull unpacking.
 		ofstream sf(status_file);
 		if(!sf.is_open()){
-			cerr << "julia_in_one_file: Cannot open status file \"" 
-				<< status_file << "\"!" << endl;
-			return 1;
+			cerr << "julia_in_one_file: Cannot open status file \""
+					<< status_file << "\"!" << endl;
+				return 1;
 		}
-		
+
 		sf << "Julia succesfully unpacked!" << endl;
 		sf.close();
 
 		cout << "julia_in_one_file: Julia succesfully unpacked!" << endl;
 	}
 
-	string j = OUTPUT_DIR;
-	j += "/julia_root/bin/julia";
-	const char* julia = j.c_str();
+	string julia = OUTPUT_DIR;
+	
+#if defined(WIN32)
+	julia += "\\julia_root\\bin\\julia.exe";
+#else
+	julia += "/julia_root/bin/julia";
+#endif
 
-	if(execvp(julia, argv)){
+	if(execvp(julia.c_str(), argv)){
 		cout << "julia_in_one_file: Error while executing \"" 
 			<< julia << "\"! errno = " << errno << endl;
 		return 1;

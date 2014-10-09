@@ -41,6 +41,8 @@ def chunks_from_file(filename):
 				break
 
 if __name__ == '__main__':
+	output_file_name = sys.argv[1]
+
 	tarball = 'julia_root.tar.bz2'
 
 	elf_size = os.path.getsize('julia_in_one_file.elf')
@@ -53,26 +55,33 @@ if __name__ == '__main__':
 		size & 0xff,
 		(size >> 8) & 0xff,
 		(size >> 16) & 0xff,
-		(size >> 24) & 0xff
+		(size >> 24) & 0xff,
+		0,
+		0,
+		0,
+		0
 	]
 	replacement = ''.join(map(chr, l))
-	with open('julia_in_one_file', 'wb') as of:
+	with open(output_file_name, 'wb') as of:
 		
 		# Check for magic number.
 		found_count = 0
 		for chunk in chunks_from_file('julia_in_one_file.elf'):
-			if chunk.find('\xef\xbe\xad\xde') != -1:
+			if chunk.find('\xef\xbe\xad\xde\xef\xbe\xad\xde') != -1:
 				found_count += 1
 				if found_count > 1:
-					raise RuntimeError('0xdeadbeef occures multiple times in '
-						'julia_in_one_file.elf')
+					raise RuntimeError('0xdeadbeefdeadbeef occures multiple '
+						'times in julia_in_one_file.elf')
 		if found_count == 0:
-			raise RuntimeError("0xdeadbeef doesn't occure in "
+			raise RuntimeError("0xdeadbeefdeadbeef doesn't occure in "
 						'julia_in_one_file.elf')
 
 		# Replace magic with ELF size ei. tarball offset.
 		for chunk in chunks_from_file('julia_in_one_file.elf'):
-			chunk = chunk.replace('\xef\xbe\xad\xde', replacement)
+			chunk = chunk.replace(
+				'\xef\xbe\xad\xde\xef\xbe\xad\xde', 
+				replacement
+			)
 			of.write(chunk)
 
 		# Fill up to chunk size.
