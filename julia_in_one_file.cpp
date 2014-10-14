@@ -31,7 +31,7 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////
 // User configuration.
 
-#if defined(WIN32)
+#ifdef WIN32
 #define DEFAULT_OUTPUT_DIR "C:"
 #else
 #define DEFAULT_OUTPUT_DIR "/tmp"
@@ -49,12 +49,12 @@ volatile uint64_t tarball_offset = 0xdeadbeefdeadbeef;
 namespace os {
 	namespace path {
 
-#if defined(WIN32)
+#ifdef WIN32
 		const char pathsep =  '\\';
 		const char other_pathsep =  '/';
 #else
-		const char pathsep =  '\\';
-		const char other_pathsep =  '/';
+		const char pathsep =  '/';
+		const char other_pathsep =  '\\';
 #endif
 	
 
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
 
 	string output_dir = DEFAULT_OUTPUT_DIR;
 	
-#if defined(WIN32)
+#ifdef WIN32
 	const char* env = getenv("LOCALAPPDATA");
 	if(env){
 		output_dir = path_join(env, "Temp");
@@ -126,17 +126,16 @@ int main(int argc, char** argv) {
 	if(access(status_file.c_str(), R_OK)){
 		const char* elf_path;
 
-#if defined(WIN32)
+#ifdef WIN32
 		if(isalpha(argv[0][0]) && argv[0][1] == ':' && argv[0][2] == '\\') {
 #else
-		if(argv[0][0] = '/') {
+		if(argv[0][0] == '/') {
 #endif
 			elf_path = argv[0];
 		}else{
-		
 			// Get julia_in_one_file (ELF + tarball) full path.
 			string which_cmd;
-#if defined(WIN32)
+#ifdef WIN32
 			which_cmd += "where ";
 #else
 			which_cmd += "which ";
@@ -212,7 +211,7 @@ int main(int argc, char** argv) {
 	}
 
 	string julia = path_join(output_dir, "/julia_root/bin/julia");
-#if defined(WIN32)
+#ifdef WIN32
 	julia += ".exe";
 #endif
 
