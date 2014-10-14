@@ -75,8 +75,8 @@ julia/.built: julia/.unpacked_git
 	make -C julia install -j6
 	touch $@
 
-download_site: julia/.built
-	# Downloading repo.
+download_site:
+	mkdir -p julia_root/share/julia/site/
 	JULIA_PKGDIR=julia_root/share/julia/site julia update_repo.jl
 	-find julia_root/share/julia/site/ -name .cache -exec rm -rf {} \;
 	-find julia_root/share/julia/site/ -name .git -exec rm -rf {} \;
