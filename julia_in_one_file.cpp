@@ -210,18 +210,18 @@ int main(int argc, char** argv) {
 		cout << "julia_in_one_file: Julia succesfully unpacked!" << endl;
 	}
 
-	string julia = path_join(output_dir, "/julia_root/bin/julia");
+	ostringstream oss;
+	oss << path_join(output_dir, "/julia_root/bin/julia");
 #ifdef WIN32
-	julia += ".exe";
+	oss << ".exe";
 #endif
 
-	if(execvp(julia.c_str(), argv)){
-		cout << "julia_in_one_file: Error while executing \"" 
-			<< julia << "\"! errno = " << errno << endl;
-		return 1;
+	// Skip program name.
+	for(int i = 1; i < argc; i++){
+		oss << " " << argv[i] << " ";
 	}
-
-	return 0;
+	
+	return system(oss.str().c_str());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
