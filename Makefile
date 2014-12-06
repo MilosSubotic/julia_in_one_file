@@ -81,7 +81,6 @@ download_site:
 	-find julia_root/share/julia/site/ -name .cache -exec rm -rf {} \;
 	-find julia_root/share/julia/site/ -name .git -exec rm -rf {} \;
 	$(call backup,site,julia_root/share/julia/site/)
-	mv julia_root/share/julia/site.backup*.zip .
 
 SITE_ZIP=$(shell ls -w1 site.backup-*.zip | tail -n 1)
 julia_root.tar.bz2: julia/.built
