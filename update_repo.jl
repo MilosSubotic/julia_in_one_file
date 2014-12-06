@@ -22,5 +22,10 @@ Pkg.add("SymPy")
 
 Pkg.add("GZip")
 Pkg.add("ZipFile")
+
 Pkg.add("DSP")
+
+Pkg.clone("git://github.com/jlep/Multicombinations.jl")
+Pkg.add("Iterators")
+Pkg.add("Cartesian")
 
