@@ -1,0 +1,39 @@
+
+- TODO:
+	- JULIA_GIT_VER=$(shell git log -1 --format="%h")
+	- JULIA_BUILD_VER=git-${JULIA_GIT_VER}
+	- SITE_DATE=backup date and time
+	- BUILD_PLATFORM=$(shell uname -s)
+	- BUILD_PLACE=$(shell uname -n)
+	- BUILD_DATE=build end date and time
+	- BUILD_VER=${JULIA_GIT_VER}-${BUILD_PLATFORM}-${BUILD_PLACE}-${BUILD_DATE}
+	- julia_in_one_file.cpp:
+		- KGB
+		- separate root, libc, version info
+		- flags 
+			- choose libc
+			- print version info
+				Julia source git commit: ${JULIA_GIT_VER}
+				Build platform: ${BUILD_PLATFORM}
+				Build place: ${BUILD_PLACE}
+				Build date: ${BUILD_DATE}
+				Julia site date: ${SITE_DATE}
+	- build libc
+		- Before that make statistic which one libc is where.
+	- julia_in_one_file dir:
+		Makefile
+		config/
+		src/
+			kgb.c
+			julia_in_one_file.cpp
+		tarballs/
+			julia-git-${JULIA_GIT_VER}.zip
+			site.backup-${SITE_DATE}.zip
+	- after building:
+		tmp/
+			build/
+			out/
+			packing/
+		tarballs/
+			julia_root-git-${BUILD_VER}.zip
+		julia_in_one_file / julia_in_one_file.exe
