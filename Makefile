@@ -78,6 +78,9 @@ julia/.built: julia/.unpacked_git
 download_site:
 	mkdir -p julia_root/share/julia/site/
 	JULIA_PKGDIR=julia_root/share/julia/site julia update_repo.jl
+	make backup_site
+
+backup_site:
 	-find julia_root/share/julia/site/ -name .cache -exec rm -rf {} \;
 	-find julia_root/share/julia/site/ -name .git -exec rm -rf {} \;
 	$(call backup,site,julia_root/share/julia/site/)

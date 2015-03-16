@@ -29,3 +29,6 @@ Pkg.clone("git://github.com/jlep/Multicombinations.jl")
 Pkg.add("Iterators")
 Pkg.add("Cartesian")
 
+Pkg.add("Polynomials")
+Pkg.add("PowerSeries")
+
