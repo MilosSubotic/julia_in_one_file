@@ -37,3 +37,7 @@
 		tarballs/
 			julia_root-git-${BUILD_VER}.zip
 		julia_in_one_file / julia_in_one_file.exe
+	- optional:
+		backup/
+
+
