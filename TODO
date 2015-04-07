@@ -30,14 +30,10 @@
 			julia-git-${JULIA_GIT_VER}.zip
 			site.backup-${SITE_DATE}.zip
 	- after building:
-		tmp/
-			build/
-			out/
-			packing/
-		tarballs/
-			julia_root-git-${BUILD_VER}.zip
-		julia_in_one_file / julia_in_one_file.exe
-	- optional:
+		build/
 		backup/
+			julia_root-git-${BUILD_VER}.zip
+			julia_in_one_file-${BUILD_VER}{.exe}
+		julia_in_one_file{.exe}
 
 
