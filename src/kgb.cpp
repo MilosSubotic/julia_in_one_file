@@ -1,6 +1,6 @@
 /*KGB archiver, console program and library.
-by 2015 Milos Subotic, milos.subotic.sm@gmail.com
-based on kgb_arch_posix_by_slawek.cpp by Slawek.
+Hacked by Milos Subotic, milos.subotic.sm@gmail.com, 2015
+Based on kgb_arch_posix_by_slawek.cpp file.
 */
 /*KGB Archiver console version
 ©2005-2006 Tomasz Pawlak, tomekp17@gmail.com, mod by Slawek (poczta-sn@gazeta.pl)
@@ -564,7 +564,8 @@ This will prevent any confusion about versions or archive compatibility.
 Also, give yourself credit in the help message.
 */
 
-#define PROGNAME "kgb"  // Please change this if you change the program
+#define MAGIC "KGB_arch" // Archive format is same as on KGB_arch,
+#define PROGNAME "kgb"  // but program have some structural difference.
 
 #define hash ___hash  // To avoid Digital MARS name collision
 #include <cstdio>
@@ -2259,7 +2260,9 @@ int main(int argc, char** argv) {
 int _mode = 0;
   // Check arguments
   if (argc<2) {
-      printf("KGB Archiver v1.0, (C) 2005-2006 Tomasz Pawlak\nBased on PAQ6 by Matt Mahoney\nmod by Slawek (poczta-sn@gazeta.pl)\n\n"
+      printf("KGB Archiver v1.0, (C) 2005-2006 Tomasz Pawlak\n"
+      "Based on PAQ6 by Matt Mahoney\nmod by Slawek (poczta-sn@gazeta.pl)\n"
+      "hacked by Micuri (milos.subotic.sm@gmail.com)\n\n"
       "Compression:\t\tkgb -<m> archive.kgb files <@list_files>\n"
       "Decompression:\t\tkgb archive.kgb\n"
       "Table of contests:\tmore < archive.kgb\n\n"
@@ -2302,9 +2305,9 @@ int _mode = 0;
       return 1;
     }
 
-    // Read PROGNAME " -m\r\n" at start of archive
+    // Read MAGIC " -m\r\n" at start of archive
     string s=getline(archive);
-    if (s.substr(0, string(PROGNAME).size()) != PROGNAME) {
+    if (s.substr(0, string(MAGIC).size()) != MAGIC) {
       printf("Archive %s is not in KGB Archiver format\n", argv[1]);
       return 1;
     }
