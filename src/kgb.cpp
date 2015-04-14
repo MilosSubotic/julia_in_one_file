@@ -579,8 +579,11 @@ Also, give yourself credit in the help message.
 #include <vector>
 #include <algorithm>
 #include <map>
-#include <cerrno>
+
 #include <sys/stat.h>
+#include <dirent.h>
+#include <cerrno>
+
 #undef hash
 using namespace std;
 
@@ -2167,6 +2170,78 @@ public:
 
 //////////////////////////// main ////////////////////////////
 
+static vector<string> filename;
+
+static bool double_slash(char a, char b){
+	return a == '/' && b == '/';
+}
+static std::string normpath(const std::string& s) {
+	std::string r(s);
+
+	// A\B to A/B
+	replace(r.begin(), r.end(), '\\', '/');
+
+	// A//B to A/B
+	r.erase(
+		std::unique(r.begin(), r.end(), double_slash),
+		r.end()
+	);
+
+	// A/B/ to A/B
+	if(!r.empty()){
+		// Last char is '/'?
+		if(*(r.end()-1) == '/'){
+			// Erase it.
+			r.erase(r.size() - 1);
+		}
+	}
+
+	// TODO  A/foo/../B to A/B
+	return r;
+}
+
+static void recursive_collect_files(const std::string& base) {
+	static std::string dot(".");
+	static std::string dot2("..");
+
+	DIR* dir = opendir(base.c_str());
+	if(dir){
+		dirent* node;
+		while(node = readdir(dir)){
+			switch(node->d_type){
+				case DT_DIR: // Subdir.
+					// Skipping . and ..
+					if(node->d_name != dot && node->d_name != dot2){
+						// Recursive collect files from subdir.
+						recursive_collect_files(base + node->d_name + '/');
+					}
+					break;
+				case DT_REG:
+					// Ordinary file.
+					filename.push_back(base + node->d_name);
+					break;
+				default:
+					break;
+			}
+		}
+		closedir(dir);
+	}
+}
+
+static void collect_files(const char* arg) {
+	DIR* dir = opendir(arg);
+	if(dir){ // It's dir.
+		closedir(dir);
+		string base = normpath(arg);
+		recursive_collect_files(base + '/');
+	}else{ // Maybe file?
+		if(errno == ENOTDIR){ // Definitely file.
+			string file = normpath(arg);
+			filename.push_back(file);
+		}
+	}
+}
+
 // Read and return a line of input from FILE f (default stdin) up to
 // first control character except tab.  Skips CR in CR LF.
 string getline(FILE* f=stdin) {
@@ -2214,8 +2289,7 @@ int _mode = 0;
     argv++;
   }
 
-  // File names and sizes from input or archive
-  vector<string> filename; // List of names
+  // File sizes from input or archive
   vector<long> filesize;   // Size or -1 if error
   int uncompressed_bytes=0, compressed_bytes=0;  // Input, output sizes
 
@@ -2369,14 +2443,14 @@ int _mode = 0;
                      fchar=fgetc(File);
                      if(feof(File)) {
                         if(sWork!="")
-                           filename.push_back(sWork);
+                           collect_files(sWork.c_str());
                            break;
                         }
                      if(fchar>31&&fchar<127)
                         sWork+=fchar;
                      else if(fchar=='\n') {
                         if(sWork!="") {
-                           filename.push_back(sWork);
+                           collect_files(sWork.c_str());
                            sWork="";
                         }
                      }
@@ -2393,8 +2467,7 @@ int _mode = 0;
                fclose(File);
             filename.push_back(argv[i]);
            }else{
-				// TODO If filename is directory add recursively all files.
-				filename.push_back(argv[i]);
+				collect_files(argv[i]);
 			}
         }
     else {

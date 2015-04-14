@@ -33,6 +33,8 @@ CXXFLAGS=-fPIC -O3
 
 ###############################################################################
 
+.PHONY: default 
+
 #default: ${JULIA_IN_ONE_FILE}
 default: kgb${EXE}
 
@@ -42,9 +44,14 @@ kgb${EXE}: kgb.o
 
 test: kgb${EXE}
 	rm -rf julia_root.kgb unpack
-	./kgb -0 julia_root.kgb julia_root/lib/libjulia.so julia_root/lib/libblas.so
-	mkdir -p unpack #/julia_root/lib
+	./kgb -0 julia_root.kgb julia_root/
+	mkdir -p unpack
 	cd unpack && ../kgb ../julia_root.kgb
+
+
+
+###############################################################################
+# Old.
 
 ${JULIA_IN_ONE_FILE}: julia_in_one_file.elf julia_root.tar.bz2 \
 		append_tarball.py 
@@ -54,33 +61,7 @@ ${JULIA_IN_ONE_FILE}: julia_in_one_file.elf julia_root.tar.bz2 \
 julia_in_one_file.elf: julia_in_one_file.o
 	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
 
-clean:
-	make -C julia cleanall
-	rm -f *.o *.elf
 
-distclean:
-	rm -rf julia julia_root
-	rm -f *.o *.elf
-	rm -f julia_root.tar.bz2
-	#rm -f julia_in_one_file
-
-windows:
-	# http://www.7-zip.org/download.html
-	# http://www.python.org/download/releases
-	# http://downloads.sourceforge.net/project/mingwbuilds/mingw-builds-install/mingw-builds-install.exe
-	# 		- 4.8.1, x64, win32, seh, 5
-	#		- C:\mingw-builds\x64-4.8.1-win32-seh-rev5
-	# http://sourceforge.net/projects/msys2/files/Base/x86_64/msys2-x86_64-20140910.exe
-	# 		- MSYS2 Shell
-	#		- pacman-key --init
-	#		- pacman -Syu
-	#		- Restart shell
-	#		- pacman -S diffutils git m4 make patch tar msys/openssh unzip
-	#		- Restart shell
-	#		- echo "mount C:/Python27 /python" >> ~/.bashrc
-	#		- echo "mount C:/mingw-builds/x64-4.8.1-win32-seh-rev5/mingw64 /mingw" >> ~/.bashrc
-	#		- echo "export PATH=/usr/local/bin:/usr/bin:/opt/bin:/mingw/bin:/python" >> ~/.bashrc
-	#		- Restart shell
 	
 ###############################################################################
 
