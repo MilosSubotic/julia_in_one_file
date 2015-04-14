@@ -36,4 +36,5 @@
 			julia_in_one_file-${BUILD_VER}{.exe}
 		julia_in_one_file{.exe}
 
+	- Append to ELF/EXE KGB archive, and then append archive size.
 
