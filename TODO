@@ -23,6 +23,8 @@
 	- julia_in_one_file dir:
 		Makefile
 		config/
+			Make.user # Without prefix.
+			update_repo.jl
 		src/
 			kgb.c
 			julia_in_one_file.cpp
