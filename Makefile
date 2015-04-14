@@ -6,33 +6,54 @@
 # @author Milos Subotic <milos.subotic.sm@gmail.com>
 # @license MIT
 #
-# @brief Julia in one file.
+# @brief Julia in one file, main makefile.
 #
-# @version: 1.0
+# @version: 2.0
 # Changelog:
 # 1.0 - Initial version.
+# 2.0 - Reorganization and KGB archiving.
 #
 ###############################################################################
+# Main targets.
 
-BUILD_OS=$(shell uname)
-ifneq (,$(findstring MINGW,$(BUILD_OS)))
-	BUILD_OS=WINNT
-endif
-ifneq (,$(findstring MSYS,$(BUILD_OS)))
-	BUILD_OS=WINNT
-endif
+# TODO More.
+.PHONY: default julia_in_one_file clean
 
-ifeq (${BUILD_OS},WINNT)
-	JULIA_IN_ONE_FILE=julia_in_one_file.exe
-else
-	JULIA_IN_ONE_FILE=julia_in_one_file
-endif
+default: julia_in_one_file
+
+###############################################################################
+# Private vars and defs.
 
 define backup
 	zip -9r $(1).backup-$$(date +%F-%T | sed 's/:/-/g').zip $(2)
 endef
 
-default: ${JULIA_IN_ONE_FILE}
+###############################################################################
+# Prepare.
+
+dependecies:
+	sudo apt-get install make g++ gfortran
+
+windows:
+	echo 'http://www.7-zip.org/download.html                                                                           '
+	echo 'http://www.python.org/download/releases                                                                      '
+	echo 'http://downloads.sourceforge.net/project/mingwbuilds/mingw-builds-install/mingw-builds-install.exe           '
+	echo '		- 4.8.1, x64, win32, seh, 5                                                                            '
+	echo '		- C:\mingw-builds\x64-4.8.1-win32-seh-rev5                                                             '
+	echo 'http://sourceforge.net/projects/msys2/files/Base/x86_64/msys2-x86_64-20140910.exe                            '
+	echo '		- MSYS2 Shell                                                                                          '
+	echo '		- pacman-key --init                                                                                    '
+	echo '		- pacman -Syu                                                                                          '
+	echo '		- Restart shell                                                                                        '
+	echo '		- pacman -S diffutils git m4 make patch tar msys/openssh unzip                                         '
+	echo '		- Restart shell                                                                                        '
+	echo '		- echo "mount C:/Python27 /python" >> ~/.bashrc                                                        '
+	echo '		- echo "mount C:/mingw-builds/x64-4.8.1-win32-seh-rev5/mingw64 /mingw" >> ~/.bashrc                    '
+	echo '		- echo "export PATH=/usr/local/bin:/usr/bin:/opt/bin:/mingw/bin:/python" >> ~/.bashrc                  '
+	echo '		- Restart shell                                                                                        '
+	
+###############################################################################
+# Rules.
 
 download:
 	git clone git://github.com/JuliaLang/julia.git
@@ -63,8 +84,6 @@ else
 endif
 	touch $@
 
-dependecies:
-	sudo apt-get install make g++ gfortran
 
 build: julia/.built
 julia/.built: julia/.unpacked_git
@@ -108,6 +127,13 @@ ${JULIA_IN_ONE_FILE}: julia_in_one_file.elf julia_root.tar.bz2 \
 julia_in_one_file.elf: julia_in_one_file.o
 	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
 
+# TODO For debug.
+julia_in_one_file:
+	make -C src/
+
+###############################################################################
+# House keeping.
+
 clean:
 	make -C julia cleanall
 	rm -f *.o *.elf
@@ -118,23 +144,5 @@ distclean:
 	rm -f julia_root.tar.bz2
 	#rm -f julia_in_one_file
 
-windows:
-	# http://www.7-zip.org/download.html
-	# http://www.python.org/download/releases
-	# http://downloads.sourceforge.net/project/mingwbuilds/mingw-builds-install/mingw-builds-install.exe
-	# 		- 4.8.1, x64, win32, seh, 5
-	#		- C:\mingw-builds\x64-4.8.1-win32-seh-rev5
-	# http://sourceforge.net/projects/msys2/files/Base/x86_64/msys2-x86_64-20140910.exe
-	# 		- MSYS2 Shell
-	#		- pacman-key --init
-	#		- pacman -Syu
-	#		- Restart shell
-	#		- pacman -S diffutils git m4 make patch tar msys/openssh unzip
-	#		- Restart shell
-	#		- echo "mount C:/Python27 /python" >> ~/.bashrc
-	#		- echo "mount C:/mingw-builds/x64-4.8.1-win32-seh-rev5/mingw64 /mingw" >> ~/.bashrc
-	#		- echo "export PATH=/usr/local/bin:/usr/bin:/opt/bin:/mingw/bin:/python" >> ~/.bashrc
-	#		- Restart shell
-	
 ###############################################################################
 
