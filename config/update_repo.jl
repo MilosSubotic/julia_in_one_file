@@ -16,19 +16,25 @@ function check_if_package_exists(case_insensitive_regex::String)
 	end
 end
 
-Pkg.add("PyPlot")
-Pkg.add("Distributions")
-Pkg.add("SymPy")
-
 Pkg.add("GZip")
 Pkg.add("ZipFile")
 
-Pkg.add("DSP")
+Pkg.add("PyPlot")
+Pkg.add("SymPy")
 
+Pkg.add("HDF5")
+Pkg.add("Silo")
+
+Pkg.add("DSP")
+Pkg.add("Wavelets")
+
+Pkg.add("Distributions")
 Pkg.clone("git://github.com/jlep/Multicombinations.jl")
 Pkg.add("Iterators")
 Pkg.add("Cartesian")
 
 Pkg.add("Polynomials")
 Pkg.add("PowerSeries")
+
+
 
