@@ -585,6 +585,8 @@ Also, give yourself credit in the help message.
 #include <dirent.h>
 #include <cerrno>
 
+#include "kgb.h"
+
 #undef hash
 using namespace std;
 
@@ -2255,60 +2257,16 @@ string getline(FILE* f=stdin) {
   return result;
 }
 
-// User interface
-int main(int argc, char** argv) {
-int _mode = 0;
-  // Check arguments
-  if (argc<2) {
-      printf("KGB Archiver v1.0, (C) 2005-2006 Tomasz Pawlak\n"
-      "Based on PAQ6 by Matt Mahoney\nmod by Slawek (poczta-sn@gazeta.pl)\n"
-      "hacked by Micuri (milos.subotic.sm@gmail.com)\n\n"
-      "Compression:\t\tkgb -<m> archive.kgb files <@list_files>\n"
-      "Decompression:\t\tkgb archive.kgb\n"
-      "Table of contests:\tmore < archive.kgb\n\n"
-      "m argument\tmemory usage\n"
-      "----------\t------------------------------\n"
-      " -0       \t 2 MB (the fastest compression)\n"
-      " -1       \t 3 MB\n"
-      " -2       \t 6 MB\n"
-      " -3       \t 18 MB (dafault)\n"
-      " -4       \t 64 MB\n"
-      " -5       \t 154 MB\n"
-      " -6       \t 202 MB\n"
-      " -7       \t 404 MB\n"
-      " -8       \t 808 MB\n"
-      " -9       \t 1616 MB (the best compression)\n");
-    return 1;
-  }
-
-  // Read and remove -MEM option
-  if (argc>1 && argv[1][0]=='-') {
-    if (isdigit(argv[1][1]) && argv[1][2]==0) {
-      MEM=argv[1][1]-'0';
-    }
-    else
-      printf("Option %s ignored\n", argv[1]);
-    argc--;
-    argv++;
-  }
-
-  // File sizes from input or archive
-  vector<long> filesize;   // Size or -1 if error
-  int uncompressed_bytes=0, compressed_bytes=0;  // Input, output sizes
-
-  // Extract files
-  FILE* archive=fopen(argv[1], "rb");
-  if (archive) {
-  _mode = 0;
-    if (argc>2) {
-      printf("File %s already exists\n", argv[1]);
-      return 1;
-    }
+int kgb_extract(FILE* archive, const char* archive_filename) {
+	// File sizes from input or archive
+	vector<long> filesize;   // Size or -1 if error
+	int uncompressed_bytes=0, compressed_bytes=0;  // Input, output sizes
+	int start_in_file = ftell(archive);
 
     // Read MAGIC " -m\r\n" at start of archive
     string s=getline(archive);
     if (s.substr(0, string(MAGIC).size()) != MAGIC) {
-      printf("Archive %s is not in KGB Archiver format\n", argv[1]);
+      printf("Archive %s is not in KGB Archiver format\n", archive_filename);
       return 1;
     }
 
@@ -2318,7 +2276,7 @@ int _mode = 0;
       if (c>='0' && c<='9')
         MEM=c-'0';
     }
-    printf("Extracting archive " PROGNAME " -%d %s ...\n", MEM, argv[1]);
+    printf("Extracting archive " PROGNAME " -%d %s ...\n", MEM, archive_filename);
 
     // Read "size filename" in "%d\t%s\r\n" format
     while (true) {
@@ -2339,7 +2297,7 @@ int _mode = 0;
     {
       int c1=0, c2=0;
       if ((c1=getc(archive))!='\f' || (c2=getc(archive))!=0) {
-        printf("%s: Incorrect format of file header %d %d\n", argv[1],
+        printf("%s: Incorrect format of file header %d %d\n", archive_filename,
           c1, c2);
         return 1;
       }
@@ -2376,9 +2334,11 @@ int _mode = 0;
 /*        f=fopen(filename[i].c_str(), "wb");
         if (!f)
           printf("cannot create, skipping...\n");
+
         for (long j=0; j<size; ++j) {
           int c=e.decode();
           if (f)
+
             putc(c, f);
 */
 	if (!((filename[i].find("../") != string::npos) || (filename[i].find("..\\") != string::npos)))
@@ -2408,7 +2368,8 @@ int _mode = 0;
 	  printf("cannot create file.\n");
 	  printf("Directory traversal attack found while trying to create '%s' file\n", filename[i].c_str());
 
-	  exit(EXIT_FAILURE);
+	  //exit(EXIT_FAILURE);
+		return 1;
 	}
 /*end of security update*/
         if (f) {
@@ -2417,13 +2378,80 @@ int _mode = 0;
         }
       }
     }
-    compressed_bytes=ftell(archive);
+	compressed_bytes = ftell(archive) - start_in_file;
+
+  // Report statistics
+  const double elapsed_time =
+	double(clock()-programChecker.start_time())/CLOCKS_PER_SEC;
+  printf("%dKB -> %dKB w %1.2fs.", compressed_bytes/1024, uncompressed_bytes/1024,
+	elapsed_time);
+
+  if (uncompressed_bytes>0 && elapsed_time>0) {
+	printf(" (%1.2f%% czas: %1.0f KB/s)",
+	  compressed_bytes*100.0/uncompressed_bytes,
+	  uncompressed_bytes/(elapsed_time*1000.0));
+  }
+  printf("\n");
+}
+
+// User interface
+int main(int argc, char** argv) {
+
+  // Check arguments
+  if (argc<2) {
+      printf("KGB Archiver v1.0, (C) 2005-2006 Tomasz Pawlak\n"
+      "Based on PAQ6 by Matt Mahoney\nmod by Slawek (poczta-sn@gazeta.pl)\n"
+      "hacked by Micuri (milos.subotic.sm@gmail.com)\n\n"
+      "Compression:\t\tkgb -<m> archive.kgb files <@list_files>\n"
+      "Decompression:\t\tkgb archive.kgb\n"
+      "Table of contests:\tmore < archive.kgb\n\n"
+      "m argument\tmemory usage\n"
+      "----------\t------------------------------\n"
+      " -0       \t 2 MB (the fastest compression)\n"
+      " -1       \t 3 MB\n"
+      " -2       \t 6 MB\n"
+      " -3       \t 18 MB (dafault)\n"
+      " -4       \t 64 MB\n"
+      " -5       \t 154 MB\n"
+      " -6       \t 202 MB\n"
+      " -7       \t 404 MB\n"
+      " -8       \t 808 MB\n"
+      " -9       \t 1616 MB (the best compression)\n");
+    return 1;
+  }
+
+  // Read and remove -MEM option
+  if (argc>1 && argv[1][0]=='-') {
+    if (isdigit(argv[1][1]) && argv[1][2]==0) {
+      MEM=argv[1][1]-'0';
+    }
+    else
+      printf("Option %s ignored\n", argv[1]);
+    argc--;
+    argv++;
+  }
+
+
+  // Extract files
+  FILE* archive=fopen(argv[1], "rb");
+  if (archive) {
+    if (argc>2) {
+      printf("File %s already exists\n", argv[1]);
+      return 1;
+    }
+
+	int ret = kgb_extract(archive, argv[1]);
     fclose(archive);
+	return ret;
+
   }
 
   // Compress files
   else {
-  _mode = 1;
+	  // File sizes from input or archive
+	  vector<long> filesize;   // Size or -1 if error
+	  int uncompressed_bytes=0, compressed_bytes=0;  // Input, output sizes
+
     // Read file names from command line, input or @file with list of files
     if (argc>2)
       for (int i=2; i<argc; ++i) {//@sth: if @sth exists, compress it; if not, find file sth
@@ -2510,7 +2538,7 @@ int _mode = 0;
       printf("Cannot create archive: %s\n", argv[1]);
       return 1;
     }
-    fprintf(archive, PROGNAME " -%d\r\n", MEM);
+    fprintf(archive, MAGIC " -%d\r\n", MEM);
     for (int i=0; i<int(filename.size()); ++i) {
       if (filesize[i]>=0)
         fprintf(archive, "%ld\t%s\r\n", filesize[i], filename[i].c_str());
@@ -2545,22 +2573,21 @@ int _mode = 0;
     e.flush();
     compressed_bytes=ftell(archive);
     fclose(archive);
+
+	  // Report statistics
+	  const double elapsed_time =
+		double(clock()-programChecker.start_time())/CLOCKS_PER_SEC;
+
+	  printf("%dKB -> %dKB w %1.2fs.", uncompressed_bytes/1024, compressed_bytes/1024,
+		elapsed_time);
+	  if (uncompressed_bytes>0 && elapsed_time>0) {
+		printf(" (%1.2f%% czas: %1.0f KB/s)",
+		  compressed_bytes*100.0/uncompressed_bytes,
+		  uncompressed_bytes/(elapsed_time*1000.0));
+	  }
+	  printf("\n");
   }
 
-  // Report statistics
-  const double elapsed_time =
-    double(clock()-programChecker.start_time())/CLOCKS_PER_SEC;
-if(_mode)  
-  printf("%dKB -> %dKB w %1.2fs.", uncompressed_bytes/1024, compressed_bytes/1024,
-    elapsed_time);
-else if(!_mode)
-  printf("%dKB -> %dKB w %1.2fs.", compressed_bytes/1024, uncompressed_bytes/1024,
-    elapsed_time);
-  if (uncompressed_bytes>0 && elapsed_time>0) {
-    printf(" (%1.2f%% czas: %1.0f KB/s)",
-      compressed_bytes*100.0/uncompressed_bytes,
-      uncompressed_bytes/(elapsed_time*1000.0));
-  }
-  printf("\n");
+
   return 0;
 }
