@@ -33,7 +33,7 @@ CXXFLAGS=-fPIC -O3
 
 ###############################################################################
 
-.PHONY: default 
+.PHONY: default clean 
 
 default: julia_in_one_file${EXE}
 
@@ -49,16 +49,8 @@ julia_in_one_file${EXE}: julia_in_one_file.elf ./julia_root.kgb
 	./append_archive.py $@ $^
 	chmod a+x $@
 
-###############################################################################
-# Old.
-
-test: kgb${EXE}
-	rm -rf julia_root.kgb unpack
-	./kgb -0 julia_root.kgb julia_root/
-	mkdir -p unpack
-	cd unpack && ../kgb ../julia_root.kgb
-
-
+clean: 
+	rm -rf julia_in_one_file${EXE} kgb${EXE} *.o *.elf
 	
 ###############################################################################
 
