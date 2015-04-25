@@ -564,8 +564,11 @@ This will prevent any confusion about versions or archive compatibility.
 Also, give yourself credit in the help message.
 */
 
-#define MAGIC "KGB_arch" // Archive format is same as on KGB_arch,
-#define PROGNAME "kgb"  // but program have some structural difference.
+// Archive format is same as on KGB_arch,
+// kgb program is backward compatable with KGB_arch,
+// but there are some new features.
+#define MAGIC "KGB_arch" 
+#define PROGNAME "kgb"
 
 #define hash ___hash  // To avoid Digital MARS name collision
 #include <cstdio>
@@ -2171,7 +2174,21 @@ public:
   }
 };
 
-//////////////////////////// main ////////////////////////////
+
+//////////////////////////// API ////////////////////////////
+
+// Read and return a line of input from FILE f (default stdin) up to
+// first control character except tab.  Skips CR in CR LF.
+static string getline(FILE* f=stdin) {
+  int c;
+  string result="";
+  while ((c=getc(f))!=EOF && (c>=32 || c=='\t'))
+    result+=char(c);
+  if (c=='\r')
+    (void) getc(f);
+  return result;
+}
+
 
 static vector<string> filename;
 
@@ -2245,23 +2262,148 @@ static void collect_files(const char* arg) {
 	}
 }
 
-// Read and return a line of input from FILE f (default stdin) up to
-// first control character except tab.  Skips CR in CR LF.
-string getline(FILE* f=stdin) {
-  int c;
-  string result="";
-  while ((c=getc(f))!=EOF && (c>=32 || c=='\t'))
-    result+=char(c);
-  if (c=='\r')
-    (void) getc(f);
-  return result;
+
+int kgb_compress(
+	FILE* archive,
+	const char* archive_filename,
+	int mem,
+	const char** args
+) {
+
+
+	  // File sizes from input or archive
+	  vector<long> filesize;   // Size or -1 if error
+	  int uncompressed_bytes=0, compressed_bytes=0;  // Input, output sizes
+	int start_of_archive = ftell(archive);
+
+      for (int i=0; args[i]; ++i) {//@sth: if @sth exists, compress it; if not, find file sth
+        if(args[i][0]=='@'&&args[i][1]!='\0') {
+            string fname=""; FILE* File;
+            File=fopen(args[i],"r");
+            if(!File) {//checks if file @sth.ext does not exist
+               for(int a=1; a<strlen(args[i]); a++)
+                  fname+=args[i][a];
+               File=fopen(fname.c_str(),"r");
+               if(!File) {
+                  printf("Cannot find directive file %s.\n",fname.c_str());
+                  continue;
+               }
+               else {
+                  char fchar=' ';
+                  string sWork="";
+                  while(true)
+                  {
+                     fchar=fgetc(File);
+                     if(feof(File)) {
+                        if(sWork!="")
+                           collect_files(sWork.c_str());
+                           break;
+                        }
+                     if(fchar>31&&fchar<127)
+                        sWork+=fchar;
+                     else if(fchar=='\n') {
+                        if(sWork!="") {
+                           collect_files(sWork.c_str());
+                           sWork="";
+                        }
+                     }
+                     else {
+                        printf("The file %s is not valid directive file%d.\n",fname.c_str(),fchar);
+                        break;
+                     }
+                  }
+                  continue;
+               }
+               fclose(File);
+            }
+            else
+               fclose(File);
+            filename.push_back(args[i]);
+           }else{
+				collect_files(args[i]);
+			}
+        }
+
+    // Get file sizes
+    for (int i=0; i<int(filename.size()); ++i) {
+      FILE* f=fopen(filename[i].c_str(), "rb");
+      if (!f) {
+        printf("File not found, skipping: %s\n",
+          filename[i].c_str());
+        filesize.push_back(-1);
+      }
+      else {
+        fseek(f, 0L, SEEK_END);
+        filesize.push_back(ftell(f));
+        fclose(f);
+      }
+    }
+    if (filesize.empty() || *max_element(filesize.begin(), filesize.end())<0){
+      printf("Nothing to compress, archive won't be created.\n");
+      return 1;
+    }
+
+    // Write header
+
+    fprintf(archive, MAGIC " -%d\r\n", MEM);
+    for (int i=0; i<int(filename.size()); ++i) {
+      if (filesize[i]>=0)
+        fprintf(archive, "%ld\t%s\r\n", filesize[i], filename[i].c_str());
+    }
+    putc(032, archive);  // MSDOS EOF
+    putc('\f', archive);
+    putc(0, archive);
+
+    // Write data
+    Transformer e(COMPRESS, archive);
+    long file_start=ftell(archive);
+    for (int i=0; i<int(filename.size()); ++i) {
+      const long size=filesize[i];
+      if (size>=0) {
+        uncompressed_bytes+=size;
+        printf("%-23s %10ldKB -> ", filename[i].c_str(), size/1024);
+        FILE* f=fopen(filename[i].c_str(), "rb");
+        int c;
+        for (long j=0; j<size; ++j) {
+          if (f)
+            c=getc(f);
+          else
+            c=0;
+          e.encode(c);
+        }
+        if (f)
+          fclose(f);
+        printf("%ldKB\n", (ftell(archive)-file_start)/1024);
+        file_start=ftell(archive);
+      }
+    }
+    e.flush();
+	compressed_bytes = ftell(archive) - start_of_archive;
+
+	  // Report statistics
+	  const double elapsed_time =
+		double(clock()-programChecker.start_time())/CLOCKS_PER_SEC;
+
+	  printf("%dKB -> %dKB w %1.2fs.", uncompressed_bytes/1024, compressed_bytes/1024,
+		elapsed_time);
+	  if (uncompressed_bytes>0 && elapsed_time>0) {
+		printf(" (%1.2f%% czas: %1.0f KB/s)",
+		  compressed_bytes*100.0/uncompressed_bytes,
+		  uncompressed_bytes/(elapsed_time*1000.0));
+	  }
+	  printf("\n");
+
+	return 0;
 }
 
-int kgb_extract(FILE* archive, const char* archive_filename) {
+int kgb_extract(
+	FILE* archive, 
+	const char* archive_filename
+) {
 	// File sizes from input or archive
 	vector<long> filesize;   // Size or -1 if error
 	int uncompressed_bytes=0, compressed_bytes=0;  // Input, output sizes
-	int start_in_file = ftell(archive);
+	int start_of_archive = ftell(archive);
 
     // Read MAGIC " -m\r\n" at start of archive
     string s=getline(archive);
@@ -2378,7 +2520,7 @@ int kgb_extract(FILE* archive, const char* archive_filename) {
         }
       }
     }
-	compressed_bytes = ftell(archive) - start_in_file;
+	compressed_bytes = ftell(archive) - start_of_archive;
 
   // Report statistics
   const double elapsed_time =
@@ -2392,202 +2534,8 @@ int kgb_extract(FILE* archive, const char* archive_filename) {
 	  uncompressed_bytes/(elapsed_time*1000.0));
   }
   printf("\n");
+
+	return 0;
 }
 
-// User interface
-int main(int argc, char** argv) {
 
-  // Check arguments
-  if (argc<2) {
-      printf("KGB Archiver v1.0, (C) 2005-2006 Tomasz Pawlak\n"
-      "Based on PAQ6 by Matt Mahoney\nmod by Slawek (poczta-sn@gazeta.pl)\n"
-      "hacked by Micuri (milos.subotic.sm@gmail.com)\n\n"
-      "Compression:\t\tkgb -<m> archive.kgb files <@list_files>\n"
-      "Decompression:\t\tkgb archive.kgb\n"
-      "Table of contests:\tmore < archive.kgb\n\n"
-      "m argument\tmemory usage\n"
-      "----------\t------------------------------\n"
-      " -0       \t 2 MB (the fastest compression)\n"
-      " -1       \t 3 MB\n"
-      " -2       \t 6 MB\n"
-      " -3       \t 18 MB (dafault)\n"
-      " -4       \t 64 MB\n"
-      " -5       \t 154 MB\n"
-      " -6       \t 202 MB\n"
-      " -7       \t 404 MB\n"
-      " -8       \t 808 MB\n"
-      " -9       \t 1616 MB (the best compression)\n");
-    return 1;
-  }
-
-  // Read and remove -MEM option
-  if (argc>1 && argv[1][0]=='-') {
-    if (isdigit(argv[1][1]) && argv[1][2]==0) {
-      MEM=argv[1][1]-'0';
-    }
-    else
-      printf("Option %s ignored\n", argv[1]);
-    argc--;
-    argv++;
-  }
-
-
-  // Extract files
-  FILE* archive=fopen(argv[1], "rb");
-  if (archive) {
-    if (argc>2) {
-      printf("File %s already exists\n", argv[1]);
-      return 1;
-    }
-
-	int ret = kgb_extract(archive, argv[1]);
-    fclose(archive);
-	return ret;
-
-  }
-
-  // Compress files
-  else {
-	  // File sizes from input or archive
-	  vector<long> filesize;   // Size or -1 if error
-	  int uncompressed_bytes=0, compressed_bytes=0;  // Input, output sizes
-
-    // Read file names from command line, input or @file with list of files
-    if (argc>2)
-      for (int i=2; i<argc; ++i) {//@sth: if @sth exists, compress it; if not, find file sth
-        if(argv[i][0]=='@'&&argv[i][1]!='\0') {
-            string fname=""; FILE* File;
-            File=fopen(argv[i],"r");
-            if(!File) {//checks if file @sth.ext does not exist
-               for(int a=1; a<strlen(argv[i]); a++)
-                  fname+=argv[i][a];
-               File=fopen(fname.c_str(),"r");
-               if(!File) {
-                  printf("Cannot find directive file %s.\n",fname.c_str());
-                  continue;
-               }
-               else {
-                  char fchar=' ';
-                  string sWork="";
-                  while(true)
-                  {
-                     fchar=fgetc(File);
-                     if(feof(File)) {
-                        if(sWork!="")
-                           collect_files(sWork.c_str());
-                           break;
-                        }
-                     if(fchar>31&&fchar<127)
-                        sWork+=fchar;
-                     else if(fchar=='\n') {
-                        if(sWork!="") {
-                           collect_files(sWork.c_str());
-                           sWork="";
-                        }
-                     }
-                     else {
-                        printf("The file %s is not valid directive file%d.\n",fname.c_str(),fchar);
-                        break;
-                     }
-                  }
-                  continue;
-               }
-               fclose(File);
-            }
-            else
-               fclose(File);
-            filename.push_back(argv[i]);
-           }else{
-				collect_files(argv[i]);
-			}
-        }
-    else {
-      printf(
-        "Type filenames to compression, finish empty line:\n");
-      while (true) {
-        string s=getline(stdin);
-        if (s=="")
-          break;
-        else
-          filename.push_back(s);
-      }
-    }
-
-    // Get file sizes
-    for (int i=0; i<int(filename.size()); ++i) {
-      FILE* f=fopen(filename[i].c_str(), "rb");
-      if (!f) {
-        printf("File not found, skipping: %s\n",
-          filename[i].c_str());
-        filesize.push_back(-1);
-      }
-      else {
-        fseek(f, 0L, SEEK_END);
-        filesize.push_back(ftell(f));
-        fclose(f);
-      }
-    }
-    if (filesize.empty() || *max_element(filesize.begin(), filesize.end())<0){
-      printf("Nothing to compress, archive won't be created.\n");
-      return 1;
-    }
-
-    // Write header
-    archive=fopen(argv[1], "wb");
-    if (!archive) {
-      printf("Cannot create archive: %s\n", argv[1]);
-      return 1;
-    }
-    fprintf(archive, MAGIC " -%d\r\n", MEM);
-    for (int i=0; i<int(filename.size()); ++i) {
-      if (filesize[i]>=0)
-        fprintf(archive, "%ld\t%s\r\n", filesize[i], filename[i].c_str());
-    }
-    putc(032, archive);  // MSDOS EOF
-    putc('\f', archive);
-    putc(0, archive);
-
-    // Write data
-    Transformer e(COMPRESS, archive);
-    long file_start=ftell(archive);
-    for (int i=0; i<int(filename.size()); ++i) {
-      const long size=filesize[i];
-      if (size>=0) {
-        uncompressed_bytes+=size;
-        printf("%-23s %10ldKB -> ", filename[i].c_str(), size/1024);
-        FILE* f=fopen(filename[i].c_str(), "rb");
-        int c;
-        for (long j=0; j<size; ++j) {
-          if (f)
-            c=getc(f);
-          else
-            c=0;
-          e.encode(c);
-        }
-        if (f)
-          fclose(f);
-        printf("%ldKB\n", (ftell(archive)-file_start)/1024);
-        file_start=ftell(archive);
-      }
-    }
-    e.flush();
-    compressed_bytes=ftell(archive);
-    fclose(archive);
-
-	  // Report statistics
-	  const double elapsed_time =
-		double(clock()-programChecker.start_time())/CLOCKS_PER_SEC;
-
-	  printf("%dKB -> %dKB w %1.2fs.", uncompressed_bytes/1024, compressed_bytes/1024,
-		elapsed_time);
-	  if (uncompressed_bytes>0 && elapsed_time>0) {
-		printf(" (%1.2f%% czas: %1.0f KB/s)",
-		  compressed_bytes*100.0/uncompressed_bytes,
-		  uncompressed_bytes/(elapsed_time*1000.0));
-	  }
-	  printf("\n");
-  }
-
-
-  return 0;
-}

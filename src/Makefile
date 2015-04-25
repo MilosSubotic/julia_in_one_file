@@ -38,7 +38,7 @@ CXXFLAGS=-fPIC -O3
 default: julia_in_one_file${EXE}
 
 
-kgb${EXE}: kgb.o
+kgb${EXE}: kgb.o kgb_main.o
 	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
 
 
@@ -46,6 +46,7 @@ julia_in_one_file.elf: julia_in_one_file.o kgb.o
 	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
 
 julia_in_one_file${EXE}: kgb${EXE} julia_in_one_file.elf
+	echo "asdf"
 
 ###############################################################################
 # Old.
