@@ -2396,7 +2396,8 @@ int kgb_extract(FILE* archive, const char* archive_filename) {
 
 // User interface
 int main(int argc, char** argv) {
-
+	printf(argv[0]);
+	return 0;
   // Check arguments
   if (argc<2) {
       printf("KGB Archiver v1.0, (C) 2005-2006 Tomasz Pawlak\n"

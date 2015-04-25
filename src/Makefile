@@ -35,20 +35,17 @@ CXXFLAGS=-fPIC -O3
 
 .PHONY: default 
 
-#default: ${JULIA_IN_ONE_FILE}
-default: kgb${EXE}
+default: julia_in_one_file${EXE}
+
 
 kgb${EXE}: kgb.o
 	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
 
 
-test: kgb${EXE}
-	rm -rf julia_root.kgb unpack
-	./kgb -0 julia_root.kgb julia_root/
-	mkdir -p unpack
-	cd unpack && ../kgb ../julia_root.kgb
+julia_in_one_file.elf: julia_in_one_file.o kgb.o
+	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
 
-
+julia_in_one_file${EXE}: kgb${EXE} julia_in_one_file.elf
 
 ###############################################################################
 # Old.
@@ -58,8 +55,12 @@ ${JULIA_IN_ONE_FILE}: julia_in_one_file.elf julia_root.tar.bz2 \
 	./append_tarball.py $@
 	chmod a+x $@
 
-julia_in_one_file.elf: julia_in_one_file.o
-	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
+
+test: kgb${EXE}
+	rm -rf julia_root.kgb unpack
+	./kgb -0 julia_root.kgb julia_root/
+	mkdir -p unpack
+	cd unpack && ../kgb ../julia_root.kgb
 
 
 	

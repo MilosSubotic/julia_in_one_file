@@ -7,9 +7,10 @@
  *
  * @brief Julia in one file.
  *
- * @version 1.0
+ * @version 2.0
  * Changelog:
  * 1.0 - Initial version.
+ * 2.0 - Using KGB.
  *
  */
 
@@ -26,6 +27,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+
+#include "kgb.h"
+
 using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -37,11 +41,6 @@ using namespace std;
 #define DEFAULT_OUTPUT_DIR "/tmp"
 #endif
 #define BLOCK_SIZE 4096
-
-///////////////////////////////////////////////////////////////////////////////
-
-// Initialized with magic number, so it could be changed by script.
-volatile uint64_t tarball_offset = 0xdeadbeefdeadbeef;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Path stuff.
@@ -111,6 +110,10 @@ std::string path_join(const std::string& s0, const std::string& s1) {
 
 int main(int argc, char** argv) {
 
+	if(argv[1] && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-v"))){
+		// TODO Print julia_in_one_file version stuff.
+	}
+
 	string output_dir = DEFAULT_OUTPUT_DIR;
 	
 #ifdef WIN32
@@ -168,23 +171,16 @@ int main(int argc, char** argv) {
 			elf_path = result.c_str();
 		}
 
-		// Get sizes calculated.
-		struct stat st;
-		stat(elf_path, &st);
-		uint32_t elf_size = st.st_size;
+		FILE* elf_file = fopen(elf_path, "rb");
+		fseek(elf_file, -4, SEEK_END);
+		uint32_t kgb_archive_pos;
+		fread(&kgb_archive_pos, 4, 1, elf_file);
+		cout << "kgb_archive_pos = " << kgb_archive_pos << endl;
 
-		uint32_t tarball_size = elf_size - tarball_offset;
-
-		uint32_t tarball_offset_in_blocks = tarball_offset / BLOCK_SIZE;
-		uint32_t tarball_size_in_blocks = ceil(double(tarball_size) / BLOCK_SIZE);
+		return 0;
 
 		ostringstream oss;
-		oss << "rm -rf \"" << path_join(output_dir, "julia_root") << "\" && "
-			<< "dd bs=" << BLOCK_SIZE
-			<< " count=" << tarball_size_in_blocks
-			<< " skip=" << tarball_offset_in_blocks
-			<< " if=" << elf_path << " | "
-			<< "tar xfvj - -C \"" << output_dir << "\"";
+
 	
 		cout << "julia_in_one_file: Unpacking Julia to \"" 
 			<< output_dir << "\"..." << endl;
