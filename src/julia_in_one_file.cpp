@@ -3,14 +3,14 @@
  * @date Sep 14, 2014
  *
  * @author Milos Subotic <milos.subotic.sm@gmail.com>
- * @license MIT
+ * @license GPLv2
  *
  * @brief Julia in one file.
  *
  * @version 2.0
  * Changelog:
  * 1.0 - Initial version.
- * 2.0 - Using KGB.
+ * 2.0 - Using KGB and changed license.
  *
  */
 
