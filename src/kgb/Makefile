@@ -1,12 +1,12 @@
 #
 ###############################################################################
 # @file Makefile
-# @date Apr 7, 2015
+# @date Apr 26, 2015
 #
 # @author Milos Subotic <milos.subotic.sm@gmail.com>
 # @license MIT
 #
-# @brief Julia in one file command.
+# @brief KGB archiver library and command line tool.
 #
 # @version: 1.0
 # Changelog:
@@ -31,31 +31,21 @@ endif
 
 CXXFLAGS=-fPIC -O3
 
-CPPFLAGS=-Ikgb/
-
 ###############################################################################
 
 .PHONY: default clean 
 
-default: julia_in_one_file${EXE}
+default: kgb${EXE}
 
 ###############################################################################
 
-julia_in_one_file.elf: julia_in_one_file.o kgb/kgb.o
+kgb${EXE}: kgb.o kgb_main.o
 	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
-
-julia_in_one_file${EXE}: julia_in_one_file.elf ./julia_root.kgb
-	./append_archive.py $@ $^
-	chmod a+x $@
-
-kgb/kgb.o:
-	make -C kgb/
 
 ###############################################################################
 
 clean: 
-	rm -rf julia_in_one_file${EXE} *.o *.elf
-	make -C kgb/
+	rm -rf kgb${EXE} *.o
 	
 ###############################################################################
 

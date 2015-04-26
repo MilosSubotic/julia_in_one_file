@@ -1,5 +1,4 @@
 *.o
 *.elf
 *.exe
-kgb
 julia_in_one_file
