@@ -1,6 +1,10 @@
 
 - TODO:
 	- JULIA_GIT_VER=$(shell git log -1 --format="%h")
+		- Have short SHA in tarball name.
+		- Think don't even need git backup zip just tarball because it have
+			short SHA in name and if you realy need git for something use
+			that short SHA and clone that commit.
 	- JULIA_BUILD_VER=git-${JULIA_GIT_VER}
 	- SITE_DATE=backup date and time
 	- BUILD_PLATFORM=$(shell uname -s)
@@ -9,6 +13,8 @@
 	- BUILD_VER=${JULIA_GIT_VER}-${BUILD_PLATFORM}-${BUILD_PLACE}-${BUILD_DATE}
 	- julia_in_one_file.cpp:
 		- KGB
+			- Add verbose flag.
+			- Ident code.
 		- separate root, libc, version info
 		- flags 
 			- choose libc
@@ -38,5 +44,8 @@
 			julia_in_one_file-${BUILD_VER}{.exe}
 		julia_in_one_file{.exe}
 
-	- Append to ELF/EXE KGB archive, and then append archive size.
+	+ Append to ELF/EXE KGB archive, and then append archive size.
+
+	- Try to find out will binary work on all platforms and how it depends
+		on glibc version and if not how they compile it not to depend.
 
