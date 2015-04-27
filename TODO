@@ -1,20 +1,21 @@
 
 - TODO:
-	- JULIA_GIT_VER=$(shell git log -1 --format="%h")
+	+ JULIA_GIT_VER=$(shell git log -1 --format="%h")
 		- Have short SHA in tarball name.
 		- Think don't even need git backup zip just tarball because it have
 			short SHA in name and if you realy need git for something use
 			that short SHA and clone that commit.
-	- JULIA_BUILD_VER=git-${JULIA_GIT_VER}
+		- JULIA_VER
 	- SITE_DATE=backup date and time
 	- BUILD_PLATFORM=$(shell uname -s)
 	- BUILD_PLACE=$(shell uname -n)
 	- BUILD_DATE=build end date and time
 	- BUILD_VER=${JULIA_GIT_VER}-${BUILD_PLATFORM}-${BUILD_PLACE}-${BUILD_DATE}
 	- julia_in_one_file.cpp:
-		- KGB
+		+ KGB
 			- Add verbose flag.
 			- Ident code.
+			- Give up from KGB, using zip.
 		- separate root, libc, version info
 		- flags 
 			- choose libc

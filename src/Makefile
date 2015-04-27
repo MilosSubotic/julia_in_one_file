@@ -51,6 +51,9 @@ julia_in_one_file${EXE}: julia_in_one_file.elf ./julia_root.kgb
 kgb/kgb.o:
 	make -C kgb/
 
+test: julia_in_one_file${EXE}
+	./julia_in_one_file${EXE}
+
 ###############################################################################
 
 clean: 

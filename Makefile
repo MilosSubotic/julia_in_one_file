@@ -17,9 +17,9 @@
 # Main targets.
 
 # TODO More.
-.PHONY: default julia_in_one_file clean
+.PHONY: default download dependecies windows clean
 
-default: julia_in_one_file
+default: asdf
 
 ###############################################################################
 # Private vars and defs.
@@ -28,11 +28,17 @@ define backup
 	zip -9r $(1).backup-$$(date +%F-%T | sed 's/:/-/g').zip $(2)
 endef
 
+# TODO Cannot find newest by name because it don't have date in name.
+#JULIA_TARBALL=$(shell ls -w1 tarballs/julia-*.tar.gz | tail -n 1)
+JULIA_TARBALL=tarballs/julia-0.4.0-dev_195bd01cfb-full.tar.gz
+
+JULIA_VER=$(patsubst tarballs/julia-%.tar.gz,%,${JULIA_TARBALL})
+
 ###############################################################################
 # Prepare.
 
 dependecies:
-	sudo apt-get install make g++ gfortran
+	sudo apt-get install bzip2 gcc gfortran git g++ make m4 ncurses-dev
 
 windows:
 	echo 'http://www.7-zip.org/download.html                                                                           '
@@ -59,52 +65,44 @@ download:
 	git clone git://github.com/JuliaLang/julia.git
 	cd julia && make source-dist
 	mv julia/julia-0.4.0-dev_*.tar.gz .
-	$(call backup,julia,julia)
+	rm -rf julia
 
-GIT_ZIP=$(shell ls -w1 julia.backup-*.zip | tail -n 1)
-unpack_git: julia/.unpacked_git
-julia/.unpacked_git:
-	# Newest backup
-ifeq (${GIT_ZIP},)
+
+build/status/unpacked:
+	rm -rf build/
+	mkdir -p build/status
+	# Unpack tarball, download if there is no one.
+ifeq (${JULIA_TARBALL},)
 	make download
 else
-	unzip ${GIT_ZIP}
-	cd julia && ../fix_git.py
-endif
-	touch $@
-
-TARBALL=$(shell ls -w1 julia-*.tar.gz | tail -n 1)
-unpack_tarball: julia/.unpacked_tarball
-julia/.unpacked_tarball:
-	 # Newest tarball, download if there is no one.
-ifeq (${TARBALL},)
-	make download
-else
-	tar xfv ${TARBALL}
+	tar xfv ${JULIA_TARBALL} -C build/
 endif
 	touch $@
 
 
-build: julia/.built
-julia/.built: julia/.unpacked_git
-	rm -f julia/Make.user
-	echo "prefix=${PWD}/julia_root" >> julia/Make.user
-	echo "JULIA_CPU_TARGET=core2" >> julia/Make.user
-	echo "OPENBLAS_TARGET_ARCH=CORE2" >> julia/Make.user
-	make -C julia install -j6
+build/status/built: build/status/unpacked
+	echo "prefix=${PWD}/build/julia_root" >  build/julia/Make.user
+	echo "JULIA_CPU_TARGET=core2"         >> build/julia/Make.user
+	echo "OPENBLAS_TARGET_ARCH=CORE2"     >> build/julia/Make.user
+	make install -j6 -C build/julia/
 	touch $@
+
+###############################################################################
+
+
 
 download_site:
 	mkdir -p julia_root/share/julia/site/
 	JULIA_PKGDIR=julia_root/share/julia/site julia update_repo.jl
 	make backup_site
 
+
 backup_site:
 	-find julia_root/share/julia/site/ -name .cache -exec rm -rf {} \;
 	-find julia_root/share/julia/site/ -name .git -exec rm -rf {} \;
 	$(call backup,site,julia_root/share/julia/site/)
 
-SITE_ZIP=$(shell ls -w1 site.backup-*.zip | tail -n 1)
+#SITE_ZIP=$(shell ls -w1 site.backup-*.zip | tail -n 1)
 julia_root.tar.bz2: julia/.built
 	rm -f julia_root/bin/julia-debug
 	rm -f julia_root/lib/julia/libjulia-debug.so

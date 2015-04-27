@@ -33,16 +33,6 @@
 using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////////
-// User configuration.
-
-#ifdef WIN32
-#define DEFAULT_OUTPUT_DIR "C:"
-#else
-#define DEFAULT_OUTPUT_DIR "/tmp"
-#endif
-#define BLOCK_SIZE 4096
-
-///////////////////////////////////////////////////////////////////////////////
 // Path stuff.
 
 namespace os {
@@ -114,13 +104,16 @@ int main(int argc, char** argv) {
 		// TODO Print julia_in_one_file version stuff.
 	}
 
-	string output_dir = DEFAULT_OUTPUT_DIR;
+	string output_dir;
 	
 #ifdef WIN32
+	output_dir = "C:";
 	const char* env = getenv("LOCALAPPDATA");
 	if(env){
 		output_dir = path_join(env, "Temp");
 	}
+#else
+	output_dir = "/tmp";
 #endif
 
 	string status_file = path_join(output_dir, "julia_root/.status");
@@ -172,32 +165,37 @@ int main(int argc, char** argv) {
 		}
 
 		FILE* elf_file = fopen(elf_path, "rb");
+		if(!elf_file){
+			cerr 
+				<< "julia_in_one_file: Cannot find my own ELF/EXE file!" 
+				<< endl;
+			return 1;
+		}
+
 		fseek(elf_file, -4, SEEK_END);
 		uint32_t kgb_archive_pos;
 		fread(&kgb_archive_pos, 4, 1, elf_file);
-		cout << "kgb_archive_pos = " << kgb_archive_pos << endl;
 
-		return 0;
 
-		ostringstream oss;
-
-	
-		cout << "julia_in_one_file: Unpacking Julia to \"" 
+		cout 
+			<< "julia_in_one_file: Unpacking Julia to \"" 
 			<< output_dir << "\"..." << endl;
 
-		int ret = system(oss.str().c_str());
+		int ret = kgb_extract(elf_file, elf_path, output_dir.c_str());
 		if(ret){
-			cerr << "julia_in_one_file: Error while unpacking Julia to \"" 
+			cerr 
+				<< "julia_in_one_file: Error while unpacking Julia to \"" 
 				<< output_dir << "\"!" << endl;
-			return 1;
+			return ret;
 		}
 
 		// Make status file after succesfull unpacking.
 		ofstream sf(status_file.c_str());
 		if(!sf.is_open()){
-			cerr << "julia_in_one_file: Cannot open status file \""
-					<< status_file << "\"!" << endl;
-				return 1;
+			cerr 
+				<< "julia_in_one_file: Cannot open status file \""
+				<< status_file << "\"!" << endl;
+			return 1;
 		}
 
 		sf << "Julia succesfully unpacked!" << endl;
@@ -212,7 +210,7 @@ int main(int argc, char** argv) {
 	oss << ".exe";
 #endif
 
-	// Skip program name.
+	// Start from 1 to skip program name.
 	for(int i = 1; i < argc; i++){
 		oss << " " << argv[i] << " ";
 	}

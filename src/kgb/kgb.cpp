@@ -2398,7 +2398,8 @@ int kgb_compress(
 
 int kgb_extract(
 	FILE* archive, 
-	const char* archive_filename
+	const char* archive_filename,
+	const char* extract_dir
 ) {
 	// File sizes from input or archive
 	vector<long> filesize;   // Size or -1 if error
@@ -2448,10 +2449,15 @@ int kgb_extract(
     // Extract files from archive data
     Transformer e(DECOMPRESS, archive);
     for (int i=0; i<int(filename.size()); ++i) {
-      printf("%10ldKB %s: ", filesize[i]/1024, filename[i].c_str());
+		string fn;
+		if(extract_dir){
+			fn = normpath(string(extract_dir) + '/' + filename[i]);
+		}
+
+      printf("%10ldKB %s: ", filesize[i]/1024, fn.c_str());
 
       // Compare with existing file
-      FILE* f=fopen(filename[i].c_str(), "rb");
+      FILE* f=fopen(fn.c_str(), "rb");
       const long size=filesize[i];
       uncompressed_bytes+=size;
       if (f) {
@@ -2473,7 +2479,7 @@ int kgb_extract(
       // Extract to new file
       else {
 /* security bug fixed by Joxean Koret, 1/04/2006, Thanks!*/
-/*        f=fopen(filename[i].c_str(), "wb");
+/*        f=fopen(fn.c_str(), "wb");
         if (!f)
           printf("cannot create, skipping...\n");
 
@@ -2483,10 +2489,9 @@ int kgb_extract(
 
             putc(c, f);
 */
-	if (!((filename[i].find("../") != string::npos) || (filename[i].find("..\\") != string::npos)))
+	if (!((fn.find("../") != string::npos) || (fn.find("..\\") != string::npos)))
 	{
 		// Make directory if not exists.
-		string& fn = filename[i];
 		for(int p = 0; p < fn.size(); p++){
 			if(fn[p] == '/' || fn[p] == '\\'){
 				char c = fn[p];
@@ -2496,7 +2501,7 @@ int kgb_extract(
 			}
 		}
 
-          f=fopen(filename[i].c_str(), "wb");
+          f=fopen(fn.c_str(), "wb");
           if (!f)
             printf("cannot create, skipping...\n");
           for (long j=0; j<size; ++j) {
@@ -2508,7 +2513,7 @@ int kgb_extract(
 	else
 	{
 	  printf("cannot create file.\n");
-	  printf("Directory traversal attack found while trying to create '%s' file\n", filename[i].c_str());
+	  printf("Directory traversal attack found while trying to create '%s' file\n", fn.c_str());
 
 	  //exit(EXIT_FAILURE);
 		return 1;

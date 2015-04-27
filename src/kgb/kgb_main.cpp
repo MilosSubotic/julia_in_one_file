@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-	int ret = kgb_extract(archive, argv[1]);
+	int ret = kgb_extract(archive, argv[1], NULL);
     fclose(archive);
 	return ret;
 

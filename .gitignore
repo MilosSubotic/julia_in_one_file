@@ -1,9 +1,3 @@
-*.o
-*.elf
-julia_in_one_file*
-julia
-julia-*.tar.gz
-julia.backup-*.zip
-site.backup-*.zip
-julia_root
-julia_root*.tar.bz2
+tarballs/
+build/
+
