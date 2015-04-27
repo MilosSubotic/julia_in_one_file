@@ -15,7 +15,11 @@
 		+ KGB
 			- Add verbose flag.
 			- Ident code.
-			- Give up from KGB, using zip.
+			- Give up from KGB, too slow, using zip, faster even than bz2.
+		- libz.a/zlib.h
+			- Doing all in memory.
+			- List all files in zip.
+			- Unpack specific file.
 		- separate root, libc, version info
 		- flags 
 			- choose libc
