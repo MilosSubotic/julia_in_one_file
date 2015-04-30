@@ -19,7 +19,7 @@
 # TODO More.
 .PHONY: default download dependecies windows clean
 
-default: asdf
+default: build/status/built
 
 ###############################################################################
 # Private vars and defs.
@@ -53,7 +53,7 @@ windows:
 	echo '		- Restart shell                                                                                        '
 	echo '		- pacman -S diffutils git m4 make patch tar msys/openssh unzip                                         '
 	echo '		- Restart shell                                                                                        '
-	echo '		- echo "mount C:/Python27 /python" >> ~/.bashrc                                                        '
+	echo '		- echo "mount C:/Python27/python" >> ~/.bashrc                                                        '
 	echo '		- echo "mount C:/mingw-builds/x64-4.8.1-win32-seh-rev5/mingw64 /mingw" >> ~/.bashrc                    '
 	echo '		- echo "export PATH=/usr/local/bin:/usr/bin:/opt/bin:/mingw/bin:/python" >> ~/.bashrc                  '
 	echo '		- Restart shell                                                                                        '
