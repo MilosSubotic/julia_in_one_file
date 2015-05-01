@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
+#include <cerrno>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -110,13 +111,14 @@ using os::path::dirname;
 ///////////////////////////////////////////////////////////////////////////////
 // Zip stuff.
 
-static string output_dir;
+static string unpack_dir;
 static vector<uint8_t> data;
 
 static int record_callback(
 	FILE* zip,
-	long zip_offset,
-	int idx,
+	long zip_start,
+	long zip_end,
+	int index,
 	JZGlobalFileHeader* global_header,
 	char* global_file_name
 ) {
@@ -126,7 +128,7 @@ static int record_callback(
 	if(
 		fseek(
 			zip, 
-			zip_offset + global_header->relativeOffsetOflocalHeader, 
+			zip_start + global_header->relativeOffsetOflocalHeader, 
 			SEEK_SET
 		)
 	){
@@ -150,13 +152,15 @@ static int record_callback(
 		return -1;
 	}
 
-	string full_file_name = path_join(output_dir, file_name);
+	string full_file_name = path_join(unpack_dir, file_name);
 	if(local_header.uncompressedSize == 0){
 		// Make dir.	
 
-		if(mkdir(full_file_name.c_str(), 0755)){
+
+		int ret = mkdir(full_file_name.c_str(), 0755);
+		if(ret && errno != EEXIST){
 			cerr 
-				<< "julia_in_one_file: Couldn't create subdirectory \"" 
+				<< "julia_in_one_file: Couldn't create directory \"" 
 				<< full_file_name << "\"!" << endl;
 		}
 	}else{
@@ -193,15 +197,30 @@ static int record_callback(
 	return 1; // continue
 };
 
-static bool unpack_zip(FILE* zip, long zip_offset, string output_dir) {
+static bool unpack_zip(
+	FILE* zip,
+	long zip_start,
+	long zip_end,
+	string unpack_dir_
+) {
+	unpack_dir = unpack_dir_;
+
 	JZEndRecord end_record;
 
-	if(jzReadEndRecord(zip, &end_record)) {
+	if(jzReadEndRecord(zip, zip_start, zip_end, &end_record)){
 		cerr << "Couldn't read ZIP file end record!" << endl;;
 		return false;
 	}
 
-	if(jzReadCentralDirectory(zip, zip_offset, &end_record, record_callback)) {
+	if(
+		jzReadCentralDirectory(
+			zip,
+			zip_start,
+			zip_end,
+			&end_record,
+			record_callback
+		)
+	){
 		cerr << "Couldn't read ZIP file central record!" << endl;
 		return false;
 	}
@@ -217,6 +236,7 @@ int main(int argc, char** argv) {
 		// TODO Print julia_in_one_file version stuff.
 	}
 	
+	string output_dir;
 #ifdef WIN32
 	output_dir = "C:";
 	const char* env = getenv("LOCALAPPDATA");
@@ -275,17 +295,21 @@ int main(int argc, char** argv) {
 			elf_path = result.c_str();
 		}
 
-		FILE* elf_file = fopen(elf_path, "rb");
-		if(!elf_file){
+		FILE* elf_and_zip = fopen(elf_path, "rb");
+		if(!elf_and_zip){
 			cerr 
 				<< "julia_in_one_file: Cannot find my own ELF/EXE file!" 
 				<< endl;
 			return 1;
 		}
 
-		fseek(elf_file, -4, SEEK_END);
-		uint32_t zip_archive_pos;
-		fread(&zip_archive_pos, 4, 1, elf_file);
+		fseek(elf_and_zip, -8, SEEK_END);
+		uint32_t root_start;
+		fread(&root_start, 4, 1, elf_and_zip);
+		uint32_t site_start;
+		fread(&site_start, 4, 1, elf_and_zip);
+		uint32_t root_end = site_start;
+		uint32_t site_end = ftell(elf_and_zip);
 
 
 		cout 
@@ -293,10 +317,33 @@ int main(int argc, char** argv) {
 			<< output_dir << "\"..." << endl;
 
 
-		if(!unpack_zip(elf_file, zip_archive_pos, output_dir)){
+		if(
+			!unpack_zip(
+				elf_and_zip,
+				root_start,
+				root_end,
+				output_dir
+			)
+		){
 			cerr 
-				<< "julia_in_one_file: Error while unpacking Julia to \"" 
+				<< "julia_in_one_file: Error while unpacking Julia root to \"" 
 				<< output_dir << "\"!" << endl;
+			return 1;
+		}
+
+
+		string dir = path_join(output_dir, "julia_root/share/julia");
+		if(
+			!unpack_zip(
+				elf_and_zip,
+				site_start,
+				site_end,
+				dir
+			)
+		){
+			cerr 
+				<< "julia_in_one_file: Error while unpacking Julia site to \"" 
+				<< dir << "\"!" << endl;
 			return 1;
 		}
 

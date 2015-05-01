@@ -19,20 +19,16 @@
 # TODO More.
 .PHONY: default download dependecies windows clean
 
-default: build/status/built
+default: build/status/packed_root
 
 ###############################################################################
 # Private vars and defs.
 
+include common.mk
+
 define backup
 	zip -9r $(1).backup-$$(date +%F-%T | sed 's/:/-/g').zip $(2)
 endef
-
-# TODO Cannot find newest by name because it don't have date in name.
-#JULIA_TARBALL=$(shell ls -w1 tarballs/julia-*.tar.gz | tail -n 1)
-JULIA_TARBALL=tarballs/julia-0.4.0-dev_195bd01cfb-full.tar.gz
-
-JULIA_VER=$(patsubst tarballs/julia-%.tar.gz,%,${JULIA_TARBALL})
 
 ###############################################################################
 # Prepare.
@@ -86,6 +82,22 @@ build/status/built: build/status/unpacked
 	echo "OPENBLAS_TARGET_ARCH=CORE2"     >> build/julia/Make.user
 	make install -j6 -C build/julia/
 	touch $@
+
+build/status/cleanup: build/status/built
+	rm -f julia_root/bin/julia-debug
+	rm -f julia_root/lib/julia/libjulia-debug.so
+	rm -f julia_root/bin/julia-debug.exe
+	rm -f julia_root/bin/libjulia-debug.dll
+	rm -rf julia_root/share/julia/test/
+	touch $@
+
+build/status/packed_root: build/status/cleanup
+	rm -f build/julia_root*.zip
+	cd build && zip -9r julia_root-$(shell date +%F-%T | sed 's/:/-/g')-\
+${BUILD_PLACE}-${BUILD_PLATFORM}-${JULIA_VER}.zip julia_root/
+	mv build/julia_root*.zip backup/
+	touch $@
+
 
 ###############################################################################
 

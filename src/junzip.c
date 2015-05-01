@@ -11,11 +11,12 @@
 unsigned char jzBuffer[JZ_BUFFER_SIZE]; // limits maximum zip descriptor size
 
 // Read ZIP file end record. Will move within file.
-int jzReadEndRecord(FILE *zip, JZEndRecord *endRecord) {
+int jzReadEndRecord(FILE *zip, long zip_start, long zip_end,
+        JZEndRecord *endRecord) {
     long fileSize, readBytes, i;
     JZEndRecord *er;
 
-    if(fseek(zip, 0, SEEK_END)) {
+    if(fseek(zip, zip_end, SEEK_SET)) {
         fprintf(stderr, "Couldn't go to end of zip file!\n");
         return Z_ERRNO;
     }
@@ -61,12 +62,12 @@ int jzReadEndRecord(FILE *zip, JZEndRecord *endRecord) {
 }
 
 // Read ZIP file global directory. Will move within file.
-int jzReadCentralDirectory(FILE *zip, long zip_offset, JZEndRecord *endRecord,
-        JZRecordCallback callback) {
+int jzReadCentralDirectory(FILE *zip, long zip_start, long zip_end,
+        JZEndRecord *endRecord, JZRecordCallback callback) {
     JZGlobalFileHeader fileHeader;
     int i;
 
-    if(fseek(zip, zip_offset + endRecord->centralDirectoryOffset, SEEK_SET)) {
+    if(fseek(zip, zip_start + endRecord->centralDirectoryOffset, SEEK_SET)) {
         fprintf(stderr, "Cannot seek in zip file!\n");
         return Z_ERRNO;
     }
@@ -102,7 +103,7 @@ int jzReadCentralDirectory(FILE *zip, long zip_offset, JZEndRecord *endRecord,
             return Z_ERRNO;
         }
 
-        if(!callback(zip, zip_offset, i, &fileHeader, (char *)jzBuffer))
+        if(!callback(zip, zip_start, zip_end, i, &fileHeader, (char *)jzBuffer))
             break; // end if callback returns zero
     }
 

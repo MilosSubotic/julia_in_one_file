@@ -73,18 +73,19 @@ typedef struct __attribute__ ((__packed__)) {
 } JZEndRecord;
 
 // Callback prototype for central and local file record reading functions
-typedef int (*JZRecordCallback)(FILE *zip, long zip_offset, int index,
-        JZGlobalFileHeader *header, char *filename);
+typedef int (*JZRecordCallback)(FILE *zip, long zip_start, long zip_end,
+        int index, JZGlobalFileHeader *header, char *filename);
 
 #define JZ_BUFFER_SIZE 65536
 
 // Read ZIP file end record. Will move within file.
-int jzReadEndRecord(FILE *zip, JZEndRecord *endRecord);
+int jzReadEndRecord(FILE *zip, long zip_start, long zip_end,
+        JZEndRecord *endRecord);
 
 // Read ZIP file global directory. Will move within file.
 // Callback is called for each record, until callback returns zero
-int jzReadCentralDirectory(FILE *zip, long zip_offset, JZEndRecord *endRecord,
-        JZRecordCallback callback);
+int jzReadCentralDirectory(FILE *zip, long zip_start, long zip_end,
+        JZEndRecord *endRecord, JZRecordCallback callback);
 
 // Read local ZIP file header. Silent on errors so optimistic reading possible.
 int jzReadLocalFileHeader(FILE *zip, JZFileHeader *header,

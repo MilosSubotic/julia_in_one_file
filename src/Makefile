@@ -15,6 +15,8 @@
 ###############################################################################
 # Private vars.
 
+include ../common.mk
+
 BUILD_OS=$(shell uname)
 ifneq (,$(findstring MINGW,$(BUILD_OS)))
 	BUILD_OS=WINNT
@@ -43,8 +45,9 @@ default: julia_in_one_file${EXE}
 julia_in_one_file.elf: julia_in_one_file.o junzip.o
 	${CXX} -static-libgcc -static-libstdc++ -o $@ $^ ${LDFLAGS} ${LIBS}
 
-julia_in_one_file${EXE}: julia_in_one_file.elf ../backup/julia_root.zip
-	./append_archive.py $@ $^
+# TODO Better selection of root and site.
+julia_in_one_file${EXE}: julia_in_one_file.elf ../backup/julia_root*.zip ../backup/site*.zip
+	./append_archives.py $@ $^
 	chmod a+x $@
 
 test: julia_in_one_file${EXE}
