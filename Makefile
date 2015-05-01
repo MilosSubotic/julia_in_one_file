@@ -17,18 +17,15 @@
 # Main targets.
 
 # TODO More.
-.PHONY: default download dependecies windows clean
+.PHONY: default dependecies windows download all install clean
 
-default: build/status/packed_root
+default: all
 
 ###############################################################################
 # Private vars and defs.
 
-include common.mk
-
-define backup
-	zip -9r $(1).backup-$$(date +%F-%T | sed 's/:/-/g').zip $(2)
-endef
+include config/config.mk
+include src/common.mk
 
 ###############################################################################
 # Prepare.
@@ -55,7 +52,7 @@ windows:
 	echo '		- Restart shell                                                                                        '
 	
 ###############################################################################
-# Rules.
+# Download rules.
 
 download:
 	git clone git://github.com/JuliaLang/julia.git
@@ -63,6 +60,10 @@ download:
 	mv julia/julia-0.4.0-dev_*.tar.gz .
 	rm -rf julia
 
+# TODO download_site
+
+###############################################################################
+# Build rules.
 
 build/status/unpacked:
 	rm -rf build/
@@ -94,65 +95,25 @@ build/status/cleanup: build/status/built
 build/status/packed_root: build/status/cleanup
 	rm -f build/julia_root*.zip
 	cd build && zip -9r julia_root-$(shell date +%F-%T | sed 's/:/-/g')-\
-${BUILD_PLACE}-${BUILD_PLATFORM}-${JULIA_VER}.zip julia_root/
+${PLACE_PLATFORM_VER}.zip julia_root/
 	mv build/julia_root*.zip backup/
 	touch $@
 
+build/status/all:
+	make -C src/ all
+	touch $@
 
-###############################################################################
+all: build/status/all
 
-
-
-download_site:
-	mkdir -p julia_root/share/julia/site/
-	JULIA_PKGDIR=julia_root/share/julia/site julia update_repo.jl
-	make backup_site
-
-
-backup_site:
-	-find julia_root/share/julia/site/ -name .cache -exec rm -rf {} \;
-	-find julia_root/share/julia/site/ -name .git -exec rm -rf {} \;
-	$(call backup,site,julia_root/share/julia/site/)
-
-#SITE_ZIP=$(shell ls -w1 site.backup-*.zip | tail -n 1)
-julia_root.tar.bz2: julia/.built
-	rm -f julia_root/bin/julia-debug
-	rm -f julia_root/lib/julia/libjulia-debug.so
-	rm -f julia_root/bin/julia-debug.exe
-	rm -f julia_root/bin/libjulia-debug.dll
-	rm -rf julia_root/share/julia/test/
-ifeq (${SITE_ZIP},)
-	make download_site
-else
-	unzip ${SITE_ZIP} -d julia_root/share/julia/
-endif
-	# Pack it.
-	tar cfvj julia_root.tar.bz2 julia_root
-
-${JULIA_IN_ONE_FILE}: julia_in_one_file.elf julia_root.tar.bz2 \
-		append_tarball.py 
-	./append_tarball.py $@
-	chmod a+x $@
-
-julia_in_one_file.elf: julia_in_one_file.o
-	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
-
-# TODO For debug.
-julia_in_one_file:
-	make -C src/
+install: 
+	make -C src/ install
 
 ###############################################################################
 # House keeping.
 
 clean:
-	make -C julia cleanall
-	rm -f *.o *.elf
-
-distclean:
-	rm -rf julia julia_root
-	rm -f *.o *.elf
-	rm -f julia_root.tar.bz2
-	#rm -f julia_in_one_file
+	make -C src/ clean
+	rm -rf build/
 
 ###############################################################################
 

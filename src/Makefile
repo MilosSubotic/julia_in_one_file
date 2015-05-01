@@ -13,9 +13,17 @@
 # 1.0 - Initial version.
 #
 ###############################################################################
+
+.PHONY: default all install clean 
+
+default: all
+
+###############################################################################
 # Private vars.
 
-include ../common.mk
+include ../config/config.mk
+include common.mk
+
 
 BUILD_OS=$(shell uname)
 ifneq (,$(findstring MINGW,$(BUILD_OS)))
@@ -31,32 +39,49 @@ else
 	EXE=
 endif
 
+
 CXXFLAGS=-fPIC -O3
 LIBS=-lz -ldl
 
+
+ifdef JULIA_ROOT
+	JULIA_ROOT:=echo ../${JULIA_ROOT}
+else
+	JULIA_ROOT:=ls -w1 ../backup/julia_root-*-${PLACE_PLATFORM_VER}.zip | tail -n 1
+endif
+
+ifdef SITE
+	SITE:=echo ../${JULIA_ROOT}
+else
+	SITE:=ls -w1 ../backup/site.backup-*.zip | tail -n 1
+endif
+
 ###############################################################################
 
-.PHONY: default clean 
+generate_version.h:
+	./create_version_header.py $$(${JULIA_ROOT}) $$(${SITE})
 
-default: julia_in_one_file${EXE}
-
-###############################################################################
+julia_in_one_file.o: generate_version.h
 
 julia_in_one_file.elf: julia_in_one_file.o junzip.o
 	${CXX} -static-libgcc -static-libstdc++ -o $@ $^ ${LDFLAGS} ${LIBS}
 
 # TODO Better selection of root and site.
-julia_in_one_file${EXE}: julia_in_one_file.elf ../backup/julia_root*.zip ../backup/site*.zip
-	./append_archives.py $@ $^
+julia_in_one_file${EXE}: julia_in_one_file.elf
+	./append_archives.py $@ julia_in_one_file.elf $$(${JULIA_ROOT}) $$(${SITE})
 	chmod a+x $@
 
-test: julia_in_one_file${EXE}
-	./julia_in_one_file${EXE}
+all: julia_in_one_file${EXE}
+	$(call backup,../backup/julia_in_one_file${EXE},julia_in_one_file${EXE})
+
+install:
+	mkdir -p ${HOME}/local/bin/
+	cp -v julia_in_one_file${EXE} ${HOME}/local/bin/julia${EXE}
 
 ###############################################################################
 
 clean: 
-	rm -rf julia_in_one_file${EXE} *.o *.elf
+	rm -rf julia_in_one_file${EXE} *.o *.elf version.h
 	
 ###############################################################################
 

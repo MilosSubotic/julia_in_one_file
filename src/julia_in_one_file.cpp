@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include "junzip.h"
+#include "version.h"
 
 using namespace std;
 
@@ -233,7 +234,14 @@ static bool unpack_zip(
 int main(int argc, char** argv) {
 
 	if(argv[1] && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-v"))){
-		// TODO Print julia_in_one_file version stuff.
+		// Print julia_in_one_file version stuff.
+		cout 
+			<< "julia_in_one_file:" << endl
+			<< "Build date: " << BUILD_DATE << endl
+			<< "Build place: " << BUILD_PLACE << endl
+			<< "Build platform: " << BUILD_PLATFORM << endl
+			<< "Julia version and git commit: " << JULIA_VER << endl
+			<< "Julia site date: " << SITE_DATE << endl;
 	}
 	
 	string output_dir;
