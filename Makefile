@@ -113,7 +113,7 @@ all:
 	make build_root
 	make julia_in_one_file
 
-install: all
+install:
 	make -C src/ install
 
 ###############################################################################
