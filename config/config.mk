@@ -15,7 +15,8 @@
 ###############################################################################
 # User vars.
 
-JULIA_TARBALL=tarballs/julia-0.4.0-dev_195bd01cfb-full.tar.gz
+#JULIA_TARBALL=tarballs/julia-0.4.0-dev_195bd01cfb-full.tar.gz
+JULIA_TARBALL=tarballs/julia-0.4.0-dev_1c131acc50.tar.gz
 # Comment out JULIA_ROOT and SITE to use newest.
 #JULIA_ROOT=
 #SITE=
