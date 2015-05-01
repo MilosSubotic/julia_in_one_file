@@ -1,5 +1,5 @@
 
-- TODO:
+- Reorganization:
 	+ JULIA_GIT_VER=$(shell git log -1 --format="%h")
 		- Have short SHA in tarball name.
 		- Think don't even need git backup zip just tarball because it have
@@ -52,6 +52,6 @@
 
 	+ Append to ELF/EXE KGB archive, and then append archive size.
 
-	- Try to find out will binary work on all platforms and how it depends
-		on glibc version and if not how they compile it not to depend.
+- Try to find out will binary work on all platforms and how it depends
+	on glibc version and if not how they compile it not to depend.
 
