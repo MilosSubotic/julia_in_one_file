@@ -1,4 +1,11 @@
 
+- Adding Python to build.
+
+- Need to do download_site with new built Julia root.
+
+- Try to find out will binary work on all platforms and how it depends
+	on glibc version and if not how they compile it not to depend.
+
 - Reorganization:
 	+ JULIA_GIT_VER=$(shell git log -1 --format="%h")
 		- Have short SHA in tarball name.
@@ -51,7 +58,4 @@
 		julia_in_one_file{.exe}
 
 	+ Append to ELF/EXE KGB archive, and then append archive size.
-
-- Try to find out will binary work on all platforms and how it depends
-	on glibc version and if not how they compile it not to depend.
 
