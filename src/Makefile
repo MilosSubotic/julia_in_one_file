@@ -30,8 +30,7 @@ else
 endif
 
 CXXFLAGS=-fPIC -O3
-
-CPPFLAGS=-Ikgb/
+LIBS=-lz -ldl
 
 ###############################################################################
 
@@ -41,15 +40,12 @@ default: julia_in_one_file${EXE}
 
 ###############################################################################
 
-julia_in_one_file.elf: julia_in_one_file.o kgb/kgb.o
-	${CXX} -static-libgcc -static-libstdc++ -o $@ $^
+julia_in_one_file.elf: julia_in_one_file.o junzip.o
+	${CXX} -static-libgcc -static-libstdc++ -o $@ $^ ${LDFLAGS} ${LIBS}
 
-julia_in_one_file${EXE}: julia_in_one_file.elf ./julia_root.kgb
+julia_in_one_file${EXE}: julia_in_one_file.elf ../backup/julia_root.zip
 	./append_archive.py $@ $^
 	chmod a+x $@
-
-kgb/kgb.o:
-	make -C kgb/
 
 test: julia_in_one_file${EXE}
 	./julia_in_one_file${EXE}
@@ -58,7 +54,6 @@ test: julia_in_one_file${EXE}
 
 clean: 
 	rm -rf julia_in_one_file${EXE} *.o *.elf
-	make -C kgb/
 	
 ###############################################################################
 

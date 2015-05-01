@@ -3,14 +3,14 @@
  * @date Sep 14, 2014
  *
  * @author Milos Subotic <milos.subotic.sm@gmail.com>
- * @license GPLv2
+ * @license MIT
  *
  * @brief Julia in one file.
  *
- * @version 2.0
+ * @version 2.1
  * Changelog:
  * 1.0 - Initial version.
- * 2.0 - Using KGB and changed license.
+ * 2.1 - Using JUnzip.
  *
  */
 
@@ -19,6 +19,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <vector>
 #include <algorithm>
 #include <stdint.h>
 #include <cstdlib>
@@ -26,9 +28,8 @@
 #include <cmath>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <errno.h>
 
-#include "kgb.h"
+#include "junzip.h"
 
 using namespace std;
 
@@ -47,7 +48,7 @@ namespace os {
 #endif
 	
 
-		std::string join(const std::string& s0, const std::string& s1) {
+		static std::string join(const std::string& s0, const std::string& s1) {
 			std::string r(s0);
 			if(!r.empty()){
 				// Last char is not /?
@@ -64,7 +65,7 @@ namespace os {
 			return a == pathsep && b == pathsep;
 		}
 
-		std::string normpath(const std::string& s) {
+		static std::string normpath(const std::string& s) {
 			std::string r(s);
 
 			// A\B to A/B
@@ -89,22 +90,132 @@ namespace os {
 			return r;
 		}
 		
+		static std::string dirname(const std::string& s){
+			size_t found = s.find_last_of('/');
+			// Slash not found
+			if(found == std::string::npos){
+				return std::string();
+			}else{
+				return s.substr(0, found);
+			}
+		}
 	} // namespace path
 } // namespace os
 
-///////////////////////////////////////////////////////////////////////////////
-
-std::string path_join(const std::string& s0, const std::string& s1) {
+static string path_join(const string& s0, const string& s1) {
 	return os::path::normpath(os::path::join(s0, s1));
 }
+using os::path::dirname;
+
+///////////////////////////////////////////////////////////////////////////////
+// Zip stuff.
+
+static string output_dir;
+static vector<uint8_t> data;
+
+static int record_callback(
+	FILE* zip,
+	long zip_offset,
+	int idx,
+	JZGlobalFileHeader* global_header,
+	char* global_file_name
+) {
+
+	long offset = ftell(zip); // Save current position.
+
+	if(
+		fseek(
+			zip, 
+			zip_offset + global_header->relativeOffsetOflocalHeader, 
+			SEEK_SET
+		)
+	){
+		printf("Cannot seek in zip file!");
+		return 0; // abort
+	}
+
+	// Process file.
+	JZFileHeader local_header;
+	char file_name[1024];
+
+	if(
+		jzReadLocalFileHeader(
+			zip, 
+			&local_header, 
+			file_name,
+			sizeof(file_name)
+		)
+	){
+		printf("Couldn't read local file header!");
+		return -1;
+	}
+
+	string full_file_name = path_join(output_dir, file_name);
+	if(local_header.uncompressedSize == 0){
+		// Make dir.	
+
+		if(mkdir(full_file_name.c_str(), 0755)){
+			cerr 
+				<< "julia_in_one_file: Couldn't create subdirectory \"" 
+				<< full_file_name << "\"!" << endl;
+		}
+	}else{
+		// Extract file.
+
+		data.resize(local_header.uncompressedSize);
+
+		if(jzReadData(zip, &local_header, data.data())) {
+			cerr << "julia_in_one_file: Couldn't read file data!" << endl;
+			return -1;
+		}
+
+		ofstream of(full_file_name.c_str(), ios::out | ios::binary);
+		if(!of.is_open()){
+			cerr 
+				<< "julia_in_one_file: Cannot create file \""
+				<< full_file_name << "\"!" << endl;
+		}else{
+			of.write(reinterpret_cast<const char*>(data.data()), data.size());
+			of.close();
+
+			mode_t mode = global_header->externalFileAttributes >> 16 & 07777;
+			if(chmod(full_file_name.c_str(), mode)){
+				cerr 
+					<< "julia_in_one_file: Cannot chmod file \""
+					<< full_file_name << "\"!" << endl;
+			}
+
+		}
+	}
+
+	fseek(zip, offset, SEEK_SET); // Restore position.
+
+	return 1; // continue
+};
+
+static bool unpack_zip(FILE* zip, long zip_offset, string output_dir) {
+	JZEndRecord end_record;
+
+	if(jzReadEndRecord(zip, &end_record)) {
+		cerr << "Couldn't read ZIP file end record!" << endl;;
+		return false;
+	}
+
+	if(jzReadCentralDirectory(zip, zip_offset, &end_record, record_callback)) {
+		cerr << "Couldn't read ZIP file central record!" << endl;
+		return false;
+	}
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char** argv) {
 
 	if(argv[1] && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-v"))){
 		// TODO Print julia_in_one_file version stuff.
 	}
-
-	string output_dir;
 	
 #ifdef WIN32
 	output_dir = "C:";
@@ -145,7 +256,7 @@ int main(int argc, char** argv) {
 				return 1;
 			}
 			char buffer[128];
-			std::string result = "";
+			string result = "";
 			while(!feof(pipe)) {
 				if(fgets(buffer, 128, pipe) != NULL)
 					result += buffer;
@@ -173,20 +284,20 @@ int main(int argc, char** argv) {
 		}
 
 		fseek(elf_file, -4, SEEK_END);
-		uint32_t kgb_archive_pos;
-		fread(&kgb_archive_pos, 4, 1, elf_file);
+		uint32_t zip_archive_pos;
+		fread(&zip_archive_pos, 4, 1, elf_file);
 
 
 		cout 
 			<< "julia_in_one_file: Unpacking Julia to \"" 
 			<< output_dir << "\"..." << endl;
 
-		int ret = kgb_extract(elf_file, elf_path, output_dir.c_str());
-		if(ret){
+
+		if(!unpack_zip(elf_file, zip_archive_pos, output_dir)){
 			cerr 
 				<< "julia_in_one_file: Error while unpacking Julia to \"" 
 				<< output_dir << "\"!" << endl;
-			return ret;
+			return 1;
 		}
 
 		// Make status file after succesfull unpacking.
@@ -204,18 +315,33 @@ int main(int argc, char** argv) {
 		cout << "julia_in_one_file: Julia succesfully unpacked!" << endl;
 	}
 
-	ostringstream oss;
-	oss << path_join(output_dir, "/julia_root/bin/julia");
 #ifdef WIN32
-	oss << ".exe";
+	string julia_elf = path_join(output_dir, "julia_root/bin/julia.exe");
+#else
+	string julia_elf = path_join(output_dir, "julia_root/bin/julia");
 #endif
 
+#if 0
+	ostringstream oss;
+	oss << julia_elf;
 	// Start from 1 to skip program name.
 	for(int i = 1; i < argc; i++){
-		oss << " " << argv[i] << " ";
+		oss << " " << argv[i];
 	}
 	
 	return system(oss.str().c_str());
+#else
+	argv[0] = new char(julia_elf.size());
+	strcpy(argv[0], julia_elf.c_str());
+	if(execv(julia_elf.c_str(), argv)){
+		cerr 
+			<< "julia_in_one_file: Cannot exec julia file \""
+			<< julia_elf << "\"!" << endl;
+		return 1;
+	}
+
+	return 0;
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

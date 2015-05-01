@@ -11,7 +11,7 @@
 # @version: 2.0
 # Changelog:
 # 1.0 - Initial version.
-# 2.0 - Reorganization and KGB archiving.
+# 2.0 - Reorganization and new code for unpacking julia root.
 #
 ###############################################################################
 # Main targets.
