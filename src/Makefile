@@ -41,8 +41,8 @@ endif
 
 
 CXXFLAGS=-fPIC -O3
-LIBS=-lz -ldl
-
+# TODO Static zlib.
+LIBS=-lz
 
 ifdef JULIA_ROOT
 	JULIA_ROOT:=echo ../${JULIA_ROOT}
