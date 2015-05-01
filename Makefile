@@ -16,8 +16,8 @@
 ###############################################################################
 # Main targets.
 
-# TODO More.
-.PHONY: default dependecies windows download build_root all install clean
+.PHONY: default download download_site dependecies windows
+.PHONY: build_root julia_in_one_file all install clean
 
 default: all
 
@@ -26,6 +26,23 @@ default: all
 
 include config/config.mk
 include src/common.mk
+	
+###############################################################################
+# Download.
+
+download:
+	git clone git://github.com/JuliaLang/julia.git
+	cd julia && make source-dist
+	mv julia/julia-0.4.0-dev_*.tar.gz .
+	rm -rf julia
+
+download_site:
+	mkdir -p build/site/
+	JULIA_PKGDIR=build/site julia config/update_repo.jl
+	-find build/site/ -name .cache -exec rm -rf {} \;
+	-find build/site/ -name .git -exec rm -rf {} \;
+	cd build && zip -9r ../backup/site-\
+$(shell date +%F-%T | sed 's/:/-/g').zip site/
 
 ###############################################################################
 # Prepare.
@@ -50,17 +67,6 @@ windows:
 	echo '		- echo "mount C:/mingw-builds/x64-4.8.1-win32-seh-rev5/mingw64 /mingw" >> ~/.bashrc                    '
 	echo '		- echo "export PATH=/usr/local/bin:/usr/bin:/opt/bin:/mingw/bin:/python" >> ~/.bashrc                  '
 	echo '		- Restart shell                                                                                        '
-	
-###############################################################################
-# Download rules.
-
-download:
-	git clone git://github.com/JuliaLang/julia.git
-	cd julia && make source-dist
-	mv julia/julia-0.4.0-dev_*.tar.gz .
-	rm -rf julia
-
-# TODO download_site
 
 ###############################################################################
 # Build rules.
@@ -94,19 +100,20 @@ build/status/cleanup: build/status/built
 
 build/status/packed_root: build/status/cleanup
 	rm -f build/julia_root*.zip
-	cd build && zip -9r julia_root-$(shell date +%F-%T | sed 's/:/-/g')-\
-${PLACE_PLATFORM_VER}.zip julia_root/
-	mv build/julia_root*.zip backup/
+	cd build && zip -9r ../backup/julia_root-\
+$(shell date +%F-%T | sed 's/:/-/g')-${PLACE_PLATFORM_VER}.zip julia_root/
 	touch $@
 
 build_root: build/status/packed_root
 
-all:
+julia_in_one_file:
 	make -C src/ all
-	mkdir -p build/status
-	touch $@
 
-install: 
+all:
+	make build_root
+	make julia_in_one_file
+
+install: all
 	make -C src/ install
 
 ###############################################################################

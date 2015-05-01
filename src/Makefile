@@ -53,7 +53,7 @@ endif
 ifdef SITE
 	SITE:=echo ../${JULIA_ROOT}
 else
-	SITE:=ls -w1 ../backup/site.backup-*.zip | tail -n 1
+	SITE:=ls -w1 ../backup/site-*.zip | tail -n 1
 endif
 
 ###############################################################################
@@ -66,7 +66,6 @@ julia_in_one_file.o: generate_version.h
 julia_in_one_file.elf: julia_in_one_file.o junzip.o
 	${CXX} -static-libgcc -static-libstdc++ -o $@ $^ ${LDFLAGS} ${LIBS}
 
-# TODO Better selection of root and site.
 julia_in_one_file${EXE}: julia_in_one_file.elf
 	./append_archives.py $@ julia_in_one_file.elf $$(${JULIA_ROOT}) $$(${SITE})
 	chmod a+x $@
@@ -74,7 +73,7 @@ julia_in_one_file${EXE}: julia_in_one_file.elf
 all: julia_in_one_file${EXE}
 	$(call backup,../backup/julia_in_one_file${EXE},julia_in_one_file${EXE})
 
-install: all
+install:
 	mkdir -p ${HOME}/local/bin/
 	cp -v julia_in_one_file${EXE} ${HOME}/local/bin/julia${EXE}
 

@@ -36,7 +36,7 @@ if __name__ == '__main__':
 	build_platform = m.group(9)
 	julia_ver = m.group(10)
 
-	m = re.match(r'site.backup-((\d+)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)).zip', site)
+	m = re.match(r'site-((\d+)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)).zip', site)
 	site_date = m.group(1)
 
 	with open('version.h', 'w') as f:

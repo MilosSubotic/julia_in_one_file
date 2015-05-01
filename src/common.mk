@@ -21,7 +21,7 @@ BUILD_PLACE=$(shell uname -n)
 PLACE_PLATFORM_VER=${BUILD_PLACE}-${BUILD_PLATFORM}-${JULIA_VER}
 
 define backup
-	zip -9r $(1).backup-$$(date +%F-%T | sed 's/:/-/g').zip $(2)
+	zip -9r $(1)-$$(date +%F-%T | sed 's/:/-/g').zip $(2)
 endef
 
 ###############################################################################
