@@ -17,7 +17,7 @@
 # Main targets.
 
 # TODO More.
-.PHONY: default dependecies windows download all install clean
+.PHONY: default dependecies windows download build_root all install clean
 
 default: all
 
@@ -99,11 +99,12 @@ ${PLACE_PLATFORM_VER}.zip julia_root/
 	mv build/julia_root*.zip backup/
 	touch $@
 
-build/status/all:
-	make -C src/ all
-	touch $@
+build_root: build/status/packed_root
 
-all: build/status/all
+all:
+	make -C src/ all
+	mkdir -p build/status
+	touch $@
 
 install: 
 	make -C src/ install

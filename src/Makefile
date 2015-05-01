@@ -74,7 +74,7 @@ julia_in_one_file${EXE}: julia_in_one_file.elf
 all: julia_in_one_file${EXE}
 	$(call backup,../backup/julia_in_one_file${EXE},julia_in_one_file${EXE})
 
-install:
+install: all
 	mkdir -p ${HOME}/local/bin/
 	cp -v julia_in_one_file${EXE} ${HOME}/local/bin/julia${EXE}
 
