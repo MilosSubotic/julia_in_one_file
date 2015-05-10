@@ -1,4 +1,12 @@
 
+- Accelerate julia:
+	- build/julia/docs/devdocs/sysimg.rst
+	- JULIA_CPU_TARGET:
+		build/julia/deps/llvm-3.3/build_Release/lib/Target/X86/X86GenSubtargetInfo.inc
+	- OPENBLAS_TARGET_ARCH:
+		build/julia/deps/openblas-v0.2.14/cpuid_x86.c
+
+
 - Adding Python to build.
 
 - Need to do download_site with new built Julia root.

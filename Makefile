@@ -83,12 +83,21 @@ endif
 	touch $@
 
 
+U=build/julia/Make.user
 build/status/built: build/status/unpacked
-	echo "prefix=${PWD}/build/julia_root" >  build/julia/Make.user
-	echo "JULIA_CPU_TARGET=core2"         >> build/julia/Make.user
-	echo "OPENBLAS_TARGET_ARCH=CORE2"     >> build/julia/Make.user
+	echo "prefix=${PWD}/build/julia_root"               >  ${U}
+	echo "JULIA_CPU_TARGET=${JULIA_CPU_TARGET}"         >> ${U}
+	echo "OPENBLAS_TARGET_ARCH=${OPENBLAS_TARGET_ARCH}" >> ${U}
 	make install -j6 -C build/julia/
 	touch $@
+
+B=${PWD}/build/julia_root/share/julia/base/
+L=${PWD}/build/julia_root/lib/julia/
+J=${PWD}/build/julia/usr/bin/julia
+opt:
+	cd ${B} && echo 'Base.require("PyPlot.jl")' > userimg.jl
+	cd ${B} && ${J} -C core2 -b ${L}/sys0 sysimg.jl
+	cd ${B} && ${J} -C core2 -b ${L}/sys -J ${L}/sys0.ji
 
 build/status/cleanup: build/status/built
 	rm -f julia_root/bin/julia-debug
@@ -115,6 +124,7 @@ all:
 
 install:
 	make -C src/ install
+	rm -rf /tmp/julia_root
 
 ###############################################################################
 # House keeping.

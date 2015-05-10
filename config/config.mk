@@ -17,6 +17,16 @@
 
 JULIA_TARBALL=tarballs/julia-0.4.0-dev_195bd01cfb-full.tar.gz
 #JULIA_TARBALL=tarballs/julia-0.4.0-dev_1c131acc50.tar.gz
+
+# A10
+#JULIA_CPU_TARGET=bdver2
+#OPENBLAS_TARGET_ARCH=BULLDOZER
+
+# Phenom
+JULIA_CPU_TARGET=amdfam10
+OPENBLAS_TARGET_ARCH=BARCELONA
+
+
 # Comment out JULIA_ROOT and SITE to use newest.
 #JULIA_ROOT=
 #SITE=
