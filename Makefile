@@ -133,5 +133,9 @@ clean:
 	make -C src/ clean
 	rm -rf build/
 
+dist: clean
+	cd ../ && zip -9r \
+		julia_in_one_file-$$(date +%F-%T | sed 's/:/-/g').zip julia_in_one_file
+
 ###############################################################################
 
