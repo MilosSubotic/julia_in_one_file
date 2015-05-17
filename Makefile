@@ -52,7 +52,8 @@ dependecies:
 
 windows:
 	echo 'http://www.7-zip.org/download.html                                                                           '
-	echo 'http://www.python.org/download/releases                                                                      '
+	echo 'http://www.python.org/download/releases/                                                                     '
+	echo 'http://www.cmake.org/download/                                                                               '
 	echo 'http://downloads.sourceforge.net/project/mingwbuilds/mingw-builds-install/mingw-builds-install.exe           '
 	echo '		- 4.8.1, x64, win32, seh, 5                                                                            '
 	echo '		- C:\mingw-builds\x64-4.8.1-win32-seh-rev5                                                             '
@@ -61,11 +62,12 @@ windows:
 	echo '		- pacman-key --init                                                                                    '
 	echo '		- pacman -Syu                                                                                          '
 	echo '		- Restart shell                                                                                        '
-	echo '		- pacman -S diffutils git m4 make patch tar msys/openssh unzip                                         '
+	echo '		- pacman -S diffutils git m4 make patch tar msys/openssh unzip '                                       '
 	echo '		- Restart shell                                                                                        '
-	echo '		- echo "mount C:/Python27/python" >> ~/.bashrc                                                        '
+	echo '		- echo "mount C:/Python27/python" >> ~/.bashrc                                                         '
+	echo '		- echo "mount C:/Program\ Files\ \(x86\)/CMake /cmake" >> ~/.bashrc                                    '
 	echo '		- echo "mount C:/mingw-builds/x64-4.8.1-win32-seh-rev5/mingw64 /mingw" >> ~/.bashrc                    '
-	echo '		- echo "export PATH=/usr/local/bin:/usr/bin:/opt/bin:/mingw/bin:/python" >> ~/.bashrc                  '
+	echo '		- echo "export PATH=/usr/local/bin:/usr/bin:/opt/bin:/mingw/bin:/python:/cmake/bin:\$PATH" >> ~/.bashrc'
 	echo '		- Restart shell                                                                                        '
 
 ###############################################################################
