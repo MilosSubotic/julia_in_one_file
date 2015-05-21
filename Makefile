@@ -31,10 +31,11 @@ include src/common.mk
 # Download.
 
 download:
-	git clone git://github.com/JuliaLang/julia.git
-	cd julia && make source-dist
-	mv julia/julia-0.4.0-dev_*.tar.gz .
-	rm -rf julia
+	mkdir -p build/download/
+	cd build/download/ && git clone git://github.com/JuliaLang/julia.git
+	cd build/download/julia && make source-dist
+	mv build/download/julia/julia-0.4.0-dev_*.tar.gz tarballs/
+	rm -rf build/download/
 
 download_site:
 	mkdir -p build/site/
