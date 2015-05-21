@@ -36,6 +36,11 @@
 using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////////
+// Debug stuff.
+
+#define DEBUG(var) do{ cout << #var << " = " << var << endl; }while(0)
+
+///////////////////////////////////////////////////////////////////////////////
 // Path stuff.
 
 namespace os {
@@ -133,7 +138,7 @@ static int record_callback(
 			SEEK_SET
 		)
 	){
-		printf("Cannot seek in zip file!");
+		cerr << "julia_in_one_file: Cannot seek in zip file!" << endl;
 		return 0; // abort
 	}
 
@@ -149,16 +154,19 @@ static int record_callback(
 			sizeof(file_name)
 		)
 	){
-		printf("Couldn't read local file header!");
-		return -1;
+		cerr << "julia_in_one_file: Couldn't read local file header!" << endl;
+		return 0;
 	}
 
 	string full_file_name = path_join(unpack_dir, file_name);
 	if(local_header.uncompressedSize == 0){
 		// Make dir.	
 
-
+#ifdef WIN32
+		int ret = mkdir(full_file_name.c_str());
+#else
 		int ret = mkdir(full_file_name.c_str(), 0755);
+#endif
 		if(ret && errno != EEXIST){
 			cerr 
 				<< "julia_in_one_file: Couldn't create directory \"" 
@@ -212,7 +220,7 @@ static bool unpack_zip(
 		cerr << "Couldn't read ZIP file end record!" << endl;;
 		return false;
 	}
-
+	
 	if(
 		jzReadCentralDirectory(
 			zip,
@@ -222,7 +230,7 @@ static bool unpack_zip(
 			record_callback
 		)
 	){
-		cerr << "Couldn't read ZIP file central record!" << endl;
+		cerr << "Couldn't read ZIP file central directory!" << endl;
 		return false;
 	}
 
@@ -323,8 +331,7 @@ int main(int argc, char** argv) {
 		cout 
 			<< "julia_in_one_file: Unpacking Julia to \"" 
 			<< output_dir << "\"..." << endl;
-
-
+		
 		if(
 			!unpack_zip(
 				elf_and_zip,
@@ -376,7 +383,7 @@ int main(int argc, char** argv) {
 	string julia_elf = path_join(output_dir, "julia_root/bin/julia");
 #endif
 
-#if 0
+#ifdef WIN32
 	ostringstream oss;
 	oss << julia_elf;
 	// Start from 1 to skip program name.

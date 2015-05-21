@@ -39,8 +39,12 @@ else
 	EXE=
 endif
 
-
-CXXFLAGS=-fPIC -O3
+CXXFLAGS=-O3
+ifeq (${BUILD_OS},WINNT)
+	CC=gcc
+	CPPFLAGS+=-mno-ms-bitfields
+endif
+LDFLAGS=-static-libgcc -static-libstdc++
 # TODO Static zlib.
 LIBS=-lz
 
@@ -64,7 +68,7 @@ generate_version.h:
 julia_in_one_file.o: generate_version.h
 
 julia_in_one_file.elf: julia_in_one_file.o junzip.o
-	${CXX} -static-libgcc -static-libstdc++ -o $@ $^ ${LDFLAGS} ${LIBS}
+	${CXX} -o $@ $^ ${LDFLAGS} ${LIBS}
 
 julia_in_one_file${EXE}: julia_in_one_file.elf
 	./append_archives.py $@ julia_in_one_file.elf $$(${JULIA_ROOT}) $$(${SITE})
@@ -72,7 +76,7 @@ julia_in_one_file${EXE}: julia_in_one_file.elf
 
 all: julia_in_one_file${EXE}
 	$(call backup,../backup/julia_in_one_file${EXE},julia_in_one_file${EXE})
-
+	
 install:
 	mkdir -p ${HOME}/local/bin/
 	cp -v julia_in_one_file${EXE} ${HOME}/local/bin/julia${EXE}
